@@ -1049,6 +1049,7 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       <div class="emoji-grid" id="schedEmojiGrid"></div>
     </div>
     <input type="hidden" id="editSchedId">
+    <div id="schedOverlapError" style="display:none;color:#EF4444;font-size:13px;background:#1A0A0A;padding:10px 14px;border-radius:8px;border:1px solid #7F1D1D;margin-top:4px;line-height:1.6"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeSchedModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveScheduledAct()">Save</button>
@@ -1894,13 +1895,50 @@ function openEditSchedModal(id) {
 
 function closeSchedModal() {
   document.getElementById('schedModal').classList.remove('open');
+  document.getElementById('schedOverlapError').style.display = 'none';
 }
 
 function closeSchedModalOnOverlay(e) {
   if (e.target === document.getElementById('schedModal')) closeSchedModal();
 }
 
+function timeToMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToFmt(mins) {
+  mins = mins % (24 * 60);
+  const h = Math.floor(mins / 60), m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function checkScheduleOverlap(time, duration, days, skipId) {
+  const newStart = timeToMins(time);
+  const newEnd = newStart + parseInt(duration);
+  const conflicts = [];
+  for (const s of scheduledActs) {
+    if (s.id === skipId) continue;
+    const sharedDays = days.filter(d => s.days.includes(d));
+    if (!sharedDays.length) continue;
+    const exStart = timeToMins(s.time);
+    const exEnd = exStart + parseInt(s.duration);
+    if (newStart < exEnd && newEnd > exStart) {
+      conflicts.push({
+        name: s.name,
+        window: `${minsToFmt(exStart)} – ${minsToFmt(exEnd)}`,
+        days: sharedDays.map(d => DOW_NAMES[d]).join(', ')
+      });
+    }
+  }
+  return conflicts;
+}
+
 function saveScheduledAct() {
+  const errEl = document.getElementById('schedOverlapError');
+  errEl.style.display = 'none';
+
   const name = document.getElementById('schedName').value.trim();
   if (!name) { document.getElementById('schedName').focus(); return; }
   const duration = parseInt(document.getElementById('schedDuration').value) || 45;
@@ -1908,6 +1946,17 @@ function saveScheduledAct() {
   const category = document.getElementById('schedCategory').value;
   const days = Array.from(document.querySelectorAll('[name="dow"]:checked')).map(cb => parseInt(cb.value));
   if (days.length === 0) { alert('Please select at least one day of the week.'); return; }
+
+  const conflicts = checkScheduleOverlap(time, duration, days, editingSchedId);
+  if (conflicts.length > 0) {
+    const lines = conflicts.map(c =>
+      `• <b>${escHtml(c.name)}</b> (${c.window}) on ${c.days}`
+    ).join('<br>');
+    errEl.innerHTML = `⚠️ This overlaps with:<br>${lines}<br><br>Adjust the time or duration to avoid the conflict.`;
+    errEl.style.display = 'block';
+    return;
+  }
+
   const id = editingSchedId || genId();
   const entry = { id, name, icon: schedEmoji, duration, category, time, days };
   if (editingSchedId) {
