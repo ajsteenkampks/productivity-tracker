@@ -659,6 +659,8 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 .past-chat-quote { font-size: 12px; font-style: italic; color: #9CA3AF; margin-bottom: 6px; }
 .past-chat-meta { font-size: 12px; color: var(--text-muted); }
 
+.verse-ref { font-size:12px;font-weight:700;font-style:normal;color:#F59E0B;margin-top:5px; }
+
 /* ─── Coach Chat ─── */
 .chat-bubble.coach-ai { align-self: flex-start; }
 .chat-bubble.coach-ai .chat-bubble-label { color: #F59E0B; }
@@ -875,6 +877,7 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
         </div>
       </div>
       <div id="chatQuoteDisplay" class="reflection-quote" style="margin-top:12px"></div>
+      <div id="chatVerseDisplay" class="reflection-quote" style="margin-top:8px;border-left-color:#F59E0B;display:none"></div>
       <div id="chatArea"></div>
     </div>
 
@@ -1300,6 +1303,104 @@ const QUOTES = [
   { text: "We don't know what kind of future waits for us, but that's fine. We carry on into that uncertain future.", author: "— Simon, Gurren Lagann" },
   { text: "We evolve beyond the person we were a minute before. That's what it means to be alive.", author: "— Gurren Lagann" },
 ];
+
+const VERSES = [
+  { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.", ref: "Jeremiah 29:11" },
+  { text: "The Lord is my shepherd, I lack nothing.", ref: "Psalm 23:1" },
+  { text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.", ref: "Proverbs 3:5-6" },
+  { text: "But those who hope in the Lord will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint.", ref: "Isaiah 40:31" },
+  { text: "For God has not given us a spirit of fear, but of power and of love and of a sound mind.", ref: "2 Timothy 1:7" },
+  { text: "And we know that in all things God works for the good of those who love him, who have been called according to his purpose.", ref: "Romans 8:28" },
+  { text: "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.", ref: "Philippians 4:6" },
+  { text: "The Lord is my light and my salvation — whom shall I fear? The Lord is the stronghold of my life — of whom shall I be afraid?", ref: "Psalm 27:1" },
+  { text: "I am fearfully and wonderfully made; your works are wonderful, I know that full well.", ref: "Psalm 139:14" },
+  { text: "Be still, and know that I am God.", ref: "Psalm 46:10" },
+  { text: "If God is for us, who can be against us?", ref: "Romans 8:31" },
+  { text: "Come to me, all you who are weary and burdened, and I will give you rest.", ref: "Matthew 11:28" },
+  { text: "The steadfast love of the Lord never ceases; his mercies never come to an end; they are new every morning.", ref: "Lamentations 3:22-23" },
+  { text: "Now to him who is able to do immeasurably more than all we ask or imagine, according to his power that is at work within us.", ref: "Ephesians 3:20" },
+  { text: "For it is by grace you have been saved, through faith — and this is not from yourselves, it is the gift of God.", ref: "Ephesians 2:8" },
+  { text: "Do not conform to the pattern of this world, but be transformed by the renewing of your mind.", ref: "Romans 12:2" },
+  { text: "The Lord your God is with you, the Mighty Warrior who saves. He will take great delight in you; in his love he will rejoice over you with singing.", ref: "Zephaniah 3:17" },
+  { text: "But seek first his kingdom and his righteousness, and all these things will be given to you as well.", ref: "Matthew 6:33" },
+  { text: "He gives strength to the weary and increases the power of the weak.", ref: "Isaiah 40:29" },
+  { text: "Fear not, for I am with you; be not dismayed, for I am your God; I will strengthen you, I will help you, I will uphold you with my righteous right hand.", ref: "Isaiah 41:10" },
+  { text: "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.", ref: "Colossians 3:23" },
+  { text: "You are the light of the world. A town built on a hill cannot be hidden.", ref: "Matthew 5:14" },
+  { text: "The joy of the Lord is your strength.", ref: "Nehemiah 8:10" },
+  { text: "My grace is sufficient for you, for my power is made perfect in weakness.", ref: "2 Corinthians 12:9" },
+  { text: "The Lord bless you and keep you; the Lord make his face shine on you and be gracious to you.", ref: "Numbers 6:24-25" },
+  { text: "You will keep in perfect peace those whose minds are steadfast, because they trust in you.", ref: "Isaiah 26:3" },
+  { text: "Cast all your anxiety on him because he cares for you.", ref: "1 Peter 5:7" },
+  { text: "I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit.", ref: "John 15:5" },
+  { text: "The Lord is close to the brokenhearted and saves those who are crushed in spirit.", ref: "Psalm 34:18" },
+  { text: "Delight yourself in the Lord, and he will give you the desires of your heart.", ref: "Psalm 37:4" },
+  { text: "When you pass through the waters, I will be with you; and when you pass through the rivers, they will not sweep over you.", ref: "Isaiah 43:2" },
+  { text: "He who began a good work in you will carry it on to completion until the day of Christ Jesus.", ref: "Philippians 1:6" },
+  { text: "Let us run with perseverance the race marked out for us, fixing our eyes on Jesus, the pioneer and perfecter of faith.", ref: "Hebrews 12:1-2" },
+  { text: "Commit to the Lord whatever you do, and he will establish your plans.", ref: "Proverbs 16:3" },
+  { text: "Guard your heart above all else, for everything you do flows from it.", ref: "Proverbs 4:23" },
+  { text: "Even though I walk through the darkest valley, I will fear no evil, for you are with me.", ref: "Psalm 23:4" },
+  { text: "I have been crucified with Christ and I no longer live, but Christ lives in me.", ref: "Galatians 2:20" },
+  { text: "If anyone is in Christ, the new creation has come: the old has gone, the new is here!", ref: "2 Corinthians 5:17" },
+  { text: "May the God of hope fill you with all joy and peace as you trust in him.", ref: "Romans 15:13" },
+  { text: "Rejoice always, pray continually, give thanks in all circumstances; for this is God's will for you in Christ Jesus.", ref: "1 Thessalonians 5:16-18" },
+  { text: "Be strong in the Lord and in his mighty power.", ref: "Ephesians 6:10" },
+  { text: "Ask and it will be given to you; seek and you will find; knock and the door will be opened to you.", ref: "Matthew 7:7" },
+  { text: "The Lord is my refuge and my fortress, my God, in whom I trust.", ref: "Psalm 91:2" },
+  { text: "You are a chosen people, a royal priesthood, a holy nation, God's special possession.", ref: "1 Peter 2:9" },
+  { text: "Let your light shine before others, that they may see your good deeds and glorify your Father in heaven.", ref: "Matthew 5:16" },
+  { text: "God is our refuge and strength, an ever-present help in trouble.", ref: "Psalm 46:1" },
+  { text: "Blessed are those who hunger and thirst for righteousness, for they will be filled.", ref: "Matthew 5:6" },
+  { text: "I lift up my eyes to the mountains — where does my help come from? My help comes from the Lord.", ref: "Psalm 121:1-2" },
+  { text: "Stand firm. Let nothing move you. Always give yourself fully to the work of the Lord.", ref: "1 Corinthians 15:58" },
+  { text: "There is now no condemnation for those who are in Christ Jesus.", ref: "Romans 8:1" },
+  { text: "Call to me and I will answer you and tell you great and unsearchable things you do not know.", ref: "Jeremiah 33:3" },
+  { text: "Submit yourselves to God. Resist the devil, and he will flee from you.", ref: "James 4:7" },
+  { text: "The fruit of the Spirit is love, joy, peace, forbearance, kindness, goodness, faithfulness, gentleness and self-control.", ref: "Galatians 5:22-23" },
+  { text: "Set your minds on things above, not on earthly things.", ref: "Colossians 3:2" },
+  { text: "As for me and my household, we will serve the Lord.", ref: "Joshua 24:15" },
+  { text: "We also glory in our sufferings, because we know that suffering produces perseverance; perseverance, character; and character, hope.", ref: "Romans 5:3-4" },
+  { text: "For our light and momentary troubles are achieving for us an eternal glory that far outweighs them all.", ref: "2 Corinthians 4:17" },
+  { text: "My thoughts are not your thoughts, neither are your ways my ways, declares the Lord.", ref: "Isaiah 55:8" },
+  { text: "Every good and perfect gift is from above, coming down from the Father of the heavenly lights.", ref: "James 1:17" },
+  { text: "Be kind and compassionate to one another, forgiving each other, just as in Christ God forgave you.", ref: "Ephesians 4:32" },
+  { text: "Blessed are the peacemakers, for they will be called children of God.", ref: "Matthew 5:9" },
+  { text: "Count it pure joy whenever you face trials of many kinds, because the testing of your faith produces perseverance.", ref: "James 1:2-3" },
+  { text: "If we confess our sins, he is faithful and just and will forgive us our sins and purify us from all unrighteousness.", ref: "1 John 1:9" },
+  { text: "Do nothing out of selfish ambition or vain conceit. Rather, in humility value others above yourselves.", ref: "Philippians 2:3" },
+  { text: "Act justly, love mercy, and walk humbly with your God.", ref: "Micah 6:8" },
+  { text: "Your word is a lamp for my feet, a light on my path.", ref: "Psalm 119:105" },
+  { text: "The Lord himself goes before you and will be with you; he will never leave you nor forsake you.", ref: "Deuteronomy 31:8" },
+  { text: "I am the way and the truth and the life. No one comes to the Father except through me.", ref: "John 14:6" },
+  { text: "Whoever does not love does not know God, because God is love.", ref: "1 John 4:8" },
+  { text: "You, God, are my God, earnestly I seek you; I thirst for you, my whole being longs for you.", ref: "Psalm 63:1" },
+  { text: "He was pierced for our transgressions, he was crushed for our iniquities; the punishment that brought us peace was on him, and by his wounds we are healed.", ref: "Isaiah 53:5" },
+  { text: "The wages of sin is death, but the gift of God is eternal life in Christ Jesus our Lord.", ref: "Romans 6:23" },
+  { text: "I can do all this through him who gives me strength.", ref: "Philippians 4:13" },
+  { text: "For nothing will be impossible with God.", ref: "Luke 1:37" },
+  { text: "The Lord is good, a refuge in times of trouble. He cares for those who trust in him.", ref: "Nahum 1:7" },
+  { text: "Let the morning bring me word of your unfailing love, for I have put my trust in you.", ref: "Psalm 143:8" },
+  { text: "Taste and see that the Lord is good; blessed is the one who takes refuge in him.", ref: "Psalm 34:8" },
+  { text: "The peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus.", ref: "Philippians 4:7" },
+  { text: "He heals the brokenhearted and binds up their wounds.", ref: "Psalm 147:3" },
+  { text: "Here I am! I stand at the door and knock. If anyone hears my voice and opens the door, I will come in.", ref: "Revelation 3:20" },
+  { text: "Create in me a pure heart, O God, and renew a steadfast spirit within me.", ref: "Psalm 51:10" },
+  { text: "The Lord is my rock, my fortress and my deliverer; my God is my rock, in whom I take refuge.", ref: "Psalm 18:2" },
+  { text: "For where two or three gather in my name, there am I with them.", ref: "Matthew 18:20" },
+  { text: "With God all things are possible.", ref: "Matthew 19:26" },
+  { text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.", ref: "John 3:16" },
+  { text: "I am not ashamed of the gospel, because it is the power of God that brings salvation to everyone who believes.", ref: "Romans 1:16" },
+  { text: "Greater love has no one than this: to lay down one's life for one's friends.", ref: "John 15:13" },
+  { text: "Be strong and courageous. Do not be afraid or terrified, for the Lord your God goes with you.", ref: "Deuteronomy 31:6" },
+  { text: "The Lord is near to all who call on him, to all who call on him in truth.", ref: "Psalm 145:18" },
+];
+
+function getVerseOfDay() {
+  const d = new Date();
+  const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  return VERSES[(doy + 53) % VERSES.length];
+}
 
 const SUGGESTIONS = [
   { id: 'sug-workout', name: 'Morning Workout', icon: '💪', duration: 45, category: 'Health' },
@@ -2231,15 +2332,30 @@ function renderChat() {
 
   // Quote display
   const qDisplay = document.getElementById('chatQuoteDisplay');
+  const vDisplay = document.getElementById('chatVerseDisplay');
   if (qDisplay) {
     const chat = quoteChats[reflectionDate];
     if (isToday) {
       const q = getQuoteOfDay();
+      const v = getVerseOfDay();
       qDisplay.innerHTML = `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
+      if (vDisplay) {
+        vDisplay.style.display = 'block';
+        vDisplay.innerHTML = `"${escHtml(v.text)}"<div class="verse-ref">${escHtml(v.ref)}</div>`;
+      }
     } else if (chat && chat.quoteText) {
       qDisplay.innerHTML = `"${escHtml(chat.quoteText)}"<div class="reflection-quote-author">${escHtml(chat.quoteAuthor || '')}</div>`;
+      if (vDisplay) {
+        if (chat.verseText) {
+          vDisplay.style.display = 'block';
+          vDisplay.innerHTML = `"${escHtml(chat.verseText)}"<div class="verse-ref">${escHtml(chat.verseRef || '')}</div>`;
+        } else {
+          vDisplay.style.display = 'none';
+        }
+      }
     } else {
       qDisplay.innerHTML = `<span style="color:var(--text-muted);font-style:normal">No chat saved for this day.</span>`;
+      if (vDisplay) vDisplay.style.display = 'none';
     }
   }
 
@@ -2253,25 +2369,20 @@ function renderChat() {
     // No messages yet — show start form
     area.innerHTML = `
       <div class="chat-start-box">
-        <label class="form-label" style="margin-bottom:8px">What does this quote mean to you?</label>
-        <textarea class="journal-textarea" id="chatStartInput" placeholder="Write your reflection to start the chat..." style="min-height:120px"></textarea>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <label class="form-label" style="margin-bottom:6px">Your thoughts on the quote</label>
+        <textarea class="journal-textarea" id="chatQuoteInput" placeholder="What does this quote mean to you?" style="min-height:90px"></textarea>
+        <label class="form-label" style="margin-bottom:6px;margin-top:12px">Your thoughts on the verse</label>
+        <textarea class="journal-textarea" id="chatVerseInput" placeholder="What does this verse speak to you?" style="min-height:90px"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
           ${hasKey
             ? `<button class="btn btn-primary" onclick="startChat()">Start Chat →</button>`
             : `<div>
                 <button class="btn btn-outline" onclick="startChatNoAI()">Save Reflection</button>
-                <span style="font-size:12px;color:var(--text-muted);margin-left:10px">Add a Gemini key below to chat with AI</span>
+                <span style="font-size:12px;color:var(--text-muted);margin-left:10px">Add an AI key below to chat</span>
                </div>`
           }
-          <span id="chatWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
         </div>
       </div>`;
-    const ta = document.getElementById('chatStartInput');
-    if (ta) ta.addEventListener('input', () => {
-      const w = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
-      const wc = document.getElementById('chatWordCount');
-      if (wc) wc.textContent = `${w} word${w !== 1 ? 's' : ''}`;
-    });
   } else {
     // Show messages
     const bubbles = msgs.map(m => `
@@ -2297,17 +2408,29 @@ function renderChat() {
 }
 
 async function startChat() {
-  const ta = document.getElementById('chatStartInput');
-  if (!ta || !ta.value.trim()) { alert('Write your reflection first.'); return; }
-  const text = ta.value.trim();
-  const apiKey = localStorage.getItem('pdt_gemini_key');
-  if (!apiKey) { alert('Add your Gemini API key in the settings below.'); return; }
+  const quoteTa = document.getElementById('chatQuoteInput');
+  const verseTa = document.getElementById('chatVerseInput');
+  const quoteThoughts = quoteTa ? quoteTa.value.trim() : '';
+  const verseThoughts = verseTa ? verseTa.value.trim() : '';
+  if (!quoteThoughts && !verseThoughts) { alert('Share your thoughts on the quote or the verse first.'); return; }
 
-  const q = reflectionDate === todayStr() ? getQuoteOfDay() : { text: quoteChats[reflectionDate]?.quoteText || '', author: '' };
-  const firstMsg = `Today's quote is: "${q.text}" ${q.author}. Here's what it means to me: ${text}`;
+  const apiKey = localStorage.getItem('pdt_gemini_key');
+  if (!apiKey) { alert('Add your AI key in the settings below.'); return; }
+
+  const isToday = reflectionDate === todayStr();
+  const q = isToday ? getQuoteOfDay() : { text: quoteChats[reflectionDate]?.quoteText || '', author: '' };
+  const v = isToday ? getVerseOfDay() : { text: quoteChats[reflectionDate]?.verseText || '', ref: quoteChats[reflectionDate]?.verseRef || '' };
+
+  let parts = [];
+  if (quoteThoughts) parts.push(`On today's quote — "${q.text}" ${q.author}:\n${quoteThoughts}`);
+  if (verseThoughts) parts.push(`On today's verse — "${v.text}" (${v.ref}):\n${verseThoughts}`);
+  const firstMsg = parts.join('\n\n');
 
   if (!quoteChats[reflectionDate]) {
-    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, messages: [] };
+    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, verseText: v.text, verseRef: v.ref, messages: [] };
+  } else {
+    quoteChats[reflectionDate].verseText = v.text;
+    quoteChats[reflectionDate].verseRef = v.ref;
   }
   const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   quoteChats[reflectionDate].messages.push({ role: 'user', text: firstMsg, time });
@@ -2318,12 +2441,23 @@ async function startChat() {
 }
 
 function startChatNoAI() {
-  const ta = document.getElementById('chatStartInput');
-  if (!ta || !ta.value.trim()) { alert('Write something first.'); return; }
-  const text = ta.value.trim();
-  const q = reflectionDate === todayStr() ? getQuoteOfDay() : { text: '', author: '' };
+  const quoteTa = document.getElementById('chatQuoteInput');
+  const verseTa = document.getElementById('chatVerseInput');
+  const quoteThoughts = quoteTa ? quoteTa.value.trim() : '';
+  const verseThoughts = verseTa ? verseTa.value.trim() : '';
+  if (!quoteThoughts && !verseThoughts) { alert('Write something first.'); return; }
+
+  const isToday = reflectionDate === todayStr();
+  const q = isToday ? getQuoteOfDay() : { text: '', author: '' };
+  const v = isToday ? getVerseOfDay() : { text: '', ref: '' };
+
+  let parts = [];
+  if (quoteThoughts) parts.push(`On today's quote — "${q.text}" ${q.author}:\n${quoteThoughts}`);
+  if (verseThoughts) parts.push(`On today's verse — "${v.text}" (${v.ref}):\n${verseThoughts}`);
+  const text = parts.join('\n\n');
+
   if (!quoteChats[reflectionDate]) {
-    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, messages: [] };
+    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, verseText: v.text, verseRef: v.ref, messages: [] };
   }
   const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   quoteChats[reflectionDate].messages.push({ role: 'user', text, time });
@@ -2374,7 +2508,8 @@ async function getAIReply() {
   const sendBtn = document.getElementById('chatSendBtn');
   if (sendBtn) sendBtn.disabled = true;
 
-  const systemPrompt = `You are a warm, thoughtful conversation partner helping someone reflect on a daily quote. The quote is: "${chat.quoteText}" ${chat.quoteAuthor}. Engage meaningfully — agree, add perspective, gently challenge ideas, or ask follow-up questions. Keep responses personal and concise (2-4 sentences).`;
+  const verseInfo = chat.verseText ? ` Today's Bible verse is: "${chat.verseText}" (${chat.verseRef || ''}).` : '';
+  const systemPrompt = `You are a warm, thoughtful conversation partner helping someone reflect on a daily quote and Bible verse. Today's quote is: "${chat.quoteText}" ${chat.quoteAuthor}.${verseInfo} Engage meaningfully with their thoughts on both — agree, add perspective, gently challenge ideas, or ask follow-up questions. Keep responses warm, personal, and concise (2-4 sentences).`;
 
   try {
     let reply;
