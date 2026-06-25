@@ -757,6 +757,13 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
   <!-- ── TO-DO PANEL ── -->
   <section class="panel" id="panel-todos">
+    <div class="card" id="todayActivitiesCard">
+      <div class="card-header">
+        <div class="card-title">📋 Today's Activities</div>
+        <span id="todoActProgress" style="font-size:13px;color:var(--text-muted)"></span>
+      </div>
+      <div id="todoActList"></div>
+    </div>
     <div class="card">
       <div class="todo-form">
         <div class="todo-form-inner">
@@ -1399,7 +1406,7 @@ function switchTab(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   if (tab === 'today') renderToday();
-  if (tab === 'todos') renderTodos();
+  if (tab === 'todos') { renderTodayActivitiesInTodo(); renderTodos(); }
   if (tab === 'calendar') { renderCalendar(); renderScheduleList(); }
   if (tab === 'journal') renderJournal();
   if (tab === 'activities') renderActivities();
@@ -1493,6 +1500,7 @@ function toggleActivity(id) {
   dailyLogs[ds][id] = { done: !cur.done, duration: cur.duration };
   saveLogs();
   renderToday();
+  renderTodayActivitiesInTodo();
 }
 
 function updateDuration(id, val) {
@@ -1512,6 +1520,37 @@ function updateDuration(id, val) {
 // ═══════════════════════════════════════
 //  TO-DO
 // ═══════════════════════════════════════
+
+function renderTodayActivitiesInTodo() {
+  const card = document.getElementById('todayActivitiesCard');
+  const list = document.getElementById('todoActList');
+  if (!card || !list) return;
+
+  if (activities.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  const ds = todayStr();
+  const log = getDayLog(ds);
+  const done = Object.values(log).filter(e => e.done).length;
+  document.getElementById('todoActProgress').textContent = `${done} / ${activities.length} done`;
+
+  list.innerHTML = activities.map(act => {
+    const entry = log[act.id] || { done: false, duration: act.duration };
+    const isDone = !!entry.done;
+    return `
+    <div class="todo-item ${isDone ? 'todo-done' : ''}">
+      <button class="todo-complete-btn ${isDone ? 'is-done' : ''}" onclick="toggleActivity('${act.id}')" title="${isDone ? 'Mark incomplete' : 'Mark complete'}">
+        ${isDone ? '✓' : ''}
+      </button>
+      <span style="font-size:20px;flex-shrink:0">${act.icon}</span>
+      <div class="todo-text">${escHtml(act.name)}</div>
+      <span class="cat-badge" style="${catStyle(act.category)}">${act.category}</span>
+    </div>`;
+  }).join('');
+}
 
 function addTodo() {
   const txt = document.getElementById('todoInput').value.trim();
