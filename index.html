@@ -763,6 +763,19 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Click any suggestion to add it to your daily tracker.</p>
       <div class="sug-grid" id="sugGrid"></div>
     </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💾 Backup &amp; Restore</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+        Your data is saved in this browser automatically. Export a backup file to keep it safe or move it to another device.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="exportData()">⬇️ Export Backup</button>
+        <button class="btn btn-outline" onclick="importData()">⬆️ Import Backup</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(event)">
+    </div>
   </section>
 
 </main>
@@ -1649,6 +1662,58 @@ function pickEmoji(e) {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════
+//  BACKUP & RESTORE
+// ═══════════════════════════════════════
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    activities,
+    dailyLogs,
+    todos,
+    scheduledActs,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `productivity-backup-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  document.getElementById('importFileInput').click();
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.activities && !data.dailyLogs) throw new Error('Invalid file');
+      if (!confirm('This will replace all your current data with the backup. Continue?')) return;
+      if (Array.isArray(data.activities))    { activities = data.activities;    saveActs(); }
+      if (data.dailyLogs)                    { dailyLogs = data.dailyLogs;      saveLogs(); }
+      if (Array.isArray(data.todos))         { todos = data.todos;              saveTodos(); }
+      if (Array.isArray(data.scheduledActs)) { scheduledActs = data.scheduledActs; saveScheduled(); }
+      renderToday();
+      renderActivities();
+      alert('Backup restored successfully!');
+    } catch(err) {
+      alert('Could not read that file. Make sure it\'s a valid backup exported from this app.');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 // ═══════════════════════════════════════
