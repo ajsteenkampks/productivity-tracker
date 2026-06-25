@@ -764,6 +764,12 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       </div>
       <div id="todoActList"></div>
     </div>
+    <div class="card" id="todoSchedCard">
+      <div class="card-header">
+        <div class="card-title">🗓️ Today's Schedule</div>
+      </div>
+      <div id="todoSchedList"></div>
+    </div>
     <div class="card">
       <div class="todo-form">
         <div class="todo-form-inner">
@@ -1406,7 +1412,7 @@ function switchTab(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   if (tab === 'today') renderToday();
-  if (tab === 'todos') { renderTodayActivitiesInTodo(); renderTodos(); }
+  if (tab === 'todos') { renderTodayActivitiesInTodo(); renderTodayScheduleInTodo(); renderTodos(); }
   if (tab === 'calendar') { renderCalendar(); renderScheduleList(); }
   if (tab === 'journal') renderJournal();
   if (tab === 'activities') renderActivities();
@@ -1550,6 +1556,29 @@ function renderTodayActivitiesInTodo() {
       <span class="cat-badge" style="${catStyle(act.category)}">${act.category}</span>
     </div>`;
   }).join('');
+}
+
+function renderTodayScheduleInTodo() {
+  const card = document.getElementById('todoSchedCard');
+  const list = document.getElementById('todoSchedList');
+  if (!card || !list) return;
+
+  const dow = new Date().getDay();
+  const sched = getScheduledForDow(dow).sort((a, b) => a.time.localeCompare(b.time));
+
+  if (sched.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  list.innerHTML = sched.map(s => `
+    <div class="todo-item">
+      <span style="font-size:22px;flex-shrink:0">${s.icon}</span>
+      <div class="todo-text">${escHtml(s.name)}</div>
+      <span style="font-size:13px;font-weight:700;color:#FFFFFF;flex-shrink:0">${fmtTime(s.time)}</span>
+      <span class="cat-badge" style="${catStyle(s.category)}">${s.category}</span>
+    </div>`).join('');
 }
 
 function addTodo() {
@@ -2352,6 +2381,7 @@ function init() {
   initQuote();
   renderToday();
   renderTodayActivitiesInTodo();
+  renderTodayScheduleInTodo();
   renderEmojiGrid();
 
   // Keyboard shortcuts
