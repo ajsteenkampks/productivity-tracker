@@ -255,6 +255,8 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
 .act-delete { opacity: 0; transition: opacity 0.15s; margin-left: 4px; }
 .activity-item:hover .act-delete { opacity: 1; }
+.act-edit-btn { opacity: 0; transition: opacity 0.15s; }
+.activity-item:hover .act-edit-btn { opacity: 1; }
 
 /* ─── To-Do ─── */
 .todo-form { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -1215,6 +1217,7 @@ function renderToday() {
           onchange="updateDuration('${act.id}', this.value)">
         <span class="dur-unit">min</span>
       </div>
+      <button class="btn btn-ghost btn-icon act-edit-btn" onclick="openEditModal('${act.id}')" title="Edit activity">✏️</button>
     </div>`;
   }).join('');
 }
@@ -1421,8 +1424,8 @@ function renderActivities() {
           <div class="my-act-meta"><span class="cat-badge" style="${catStyle(act.category)}">${act.category}</span> · Default: ${act.duration} min</div>
         </div>
         <div class="my-act-actions">
-          <button class="btn btn-ghost btn-icon" onclick="openEditModal('${act.id}')" title="Edit">✏️</button>
-          <button class="btn btn-danger-ghost btn-icon" onclick="deleteActivity('${act.id}')" title="Remove">🗑️</button>
+          <button class="btn btn-outline btn-sm" onclick="openEditModal('${act.id}')">✏️ Edit</button>
+          <button class="btn btn-danger-ghost btn-sm" onclick="deleteActivity('${act.id}')">🗑️</button>
         </div>
       </div>`).join('');
   }
