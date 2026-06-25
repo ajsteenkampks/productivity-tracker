@@ -912,12 +912,15 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       <div class="card-header">
         <div class="card-title">🔑 AI Key (Free)</div>
       </div>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
-        Get a <b>free</b> Google Gemini API key — no credit card needed, just a Google account. Go to
-        <b>aistudio.google.com/app/apikey</b>, click "Create API key", and paste it below. Stored only in this browser.
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+        Paste either a <b>Groq</b> or <b>Gemini</b> key — both are free, no credit card needed. The app auto-detects which one you use.
       </p>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;display:flex;flex-direction:column;gap:6px">
+        <div>🟢 <b>Groq (recommended)</b> — sign up at <b>console.groq.com</b> → API Keys → Create. Key starts with <b>gsk_</b></div>
+        <div>🔵 <b>Gemini</b> — go to <b>aistudio.google.com/app/apikey</b> → Create API key. Key starts with <b>AIza</b></div>
+      </div>
       <div class="api-key-row">
-        <input class="api-key-input" id="apiKeyInput" type="password" placeholder="sk-ant-…">
+        <input class="api-key-input" id="apiKeyInput" type="password" placeholder="gsk_… or AIza…">
         <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
         <button class="btn btn-danger-ghost btn-sm" onclick="clearApiKey()">Clear</button>
       </div>
@@ -2249,6 +2252,11 @@ async function sendChatMessage() {
   }
 }
 
+function detectKeyType(key) {
+  if (key.startsWith('gsk_')) return 'groq';
+  return 'gemini';
+}
+
 async function getAIReply() {
   const apiKey = localStorage.getItem('pdt_gemini_key');
   if (!apiKey) return;
@@ -2266,41 +2274,56 @@ async function getAIReply() {
     cm.scrollTop = cm.scrollHeight;
   }
 
-  // Disable send button
   const sendBtn = document.getElementById('chatSendBtn');
   if (sendBtn) sendBtn.disabled = true;
 
-  const systemInstruction = `You are a warm, thoughtful conversation partner helping someone reflect on a daily quote. The quote is: "${chat.quoteText}" ${chat.quoteAuthor}. Engage meaningfully with the user's thoughts — agree, add perspective, gently challenge ideas, or ask follow-up questions. Keep responses personal and concise (2-4 sentences).`;
-
-  const contents = chat.messages.map(m => ({
-    role: m.role === 'user' ? 'user' : 'model',
-    parts: [{ text: m.text }]
-  }));
+  const systemPrompt = `You are a warm, thoughtful conversation partner helping someone reflect on a daily quote. The quote is: "${chat.quoteText}" ${chat.quoteAuthor}. Engage meaningfully — agree, add perspective, gently challenge ideas, or ask follow-up questions. Keep responses personal and concise (2-4 sentences).`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
+    let reply;
+    const keyType = detectKeyType(apiKey);
+
+    if (keyType === 'groq') {
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...chat.messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
+      ];
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents,
-          generationConfig: { maxOutputTokens: 400, temperature: 0.75 }
-        })
-      }
-    );
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 400, temperature: 0.75 })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      reply = data.choices[0].message.content;
+
+    } else {
+      const contents = chat.messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { maxOutputTokens: 400, temperature: 0.75 }
+          })
+        }
+      );
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      reply = data.candidates[0].content.parts[0].text;
     }
-    const data = await res.json();
-    const reply = data.candidates[0].content.parts[0].text;
+
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     chat.messages.push({ role: 'ai', text: reply, time });
   } catch (err) {
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    chat.messages.push({ role: 'ai', text: `Error: ${escHtml(err.message)}. Check your API key in settings.`, time });
+    chat.messages.push({ role: 'ai', text: `Error: ${err.message}`, time });
   }
 
   saveChats();
@@ -2376,7 +2399,9 @@ function renderApiStatus() {
   const el = document.getElementById('apiStatus');
   const has = !!localStorage.getItem('pdt_gemini_key');
   el.className = 'api-status ' + (has ? 'ok' : 'none');
-  el.textContent = has ? '✓ Gemini key saved — AI responses are enabled.' : 'No API key saved. Get a free one at aistudio.google.com/app/apikey';
+  const key = localStorage.getItem('pdt_gemini_key') || '';
+  const provider = key.startsWith('gsk_') ? 'Groq (llama-3.3-70b)' : 'Gemini 2.0 Flash';
+  el.textContent = has ? `✓ ${provider} key saved — AI chat is enabled.` : 'No API key saved. Get a free Groq key at console.groq.com';
 }
 
 // ── Helpers ──
