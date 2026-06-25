@@ -810,8 +810,14 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
         <div class="card-title">💬 Quote Reflection</div>
         <span id="reflectionSaveIndicator" class="save-indicator">Saved ✓</span>
       </div>
+      <div class="journal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="shiftReflectionDay(-1)">◀</button>
+        <div class="journal-date-label" id="reflectionDateLabel"></div>
+        <button class="btn btn-ghost btn-sm" id="reflectionNextBtn" onclick="shiftReflectionDay(1)">▶</button>
+        <button class="btn btn-outline btn-sm" onclick="goToReflectionToday()">Today</button>
+      </div>
       <div id="reflectionQuoteDisplay" class="reflection-quote"></div>
-      <label class="form-label">What does this quote mean to you?</label>
+      <label class="form-label" id="reflectionPromptLabel">What does this quote mean to you?</label>
       <textarea class="journal-textarea" id="reflectionInput" placeholder="Write your thoughts on today's quote…" oninput="onReflectionInput()"></textarea>
       <div class="journal-toolbar">
         <div style="display:flex;gap:8px">
@@ -845,7 +851,15 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       </div>
     </div>
 
-    <!-- Past Reflections -->
+    <!-- Past Reflections History -->
+    <div class="card" id="pastReflectionsCard" style="display:none">
+      <div class="card-header">
+        <div class="card-title">📚 Past Reflections</div>
+      </div>
+      <div id="pastReflectionsList"></div>
+    </div>
+
+    <!-- Past Journal Entries -->
     <div class="card" id="pastEntriesCard" style="display:none">
       <div class="card-header">
         <div class="card-title">📚 Past Journal Entries</div>
@@ -1251,7 +1265,8 @@ let scheduledActs = [];   // [{ id, name, icon, duration, category, time, days:[
 let journalEntries = {};  // { 'YYYY-MM-DD': 'text' }
 let quoteReflections = {}; // { 'YYYY-MM-DD': { reflection, aiResponse, quoteText, quoteAuthor } }
 let calYear, calMonth, selectedDay = null;
-let journalDate = null;   // currently viewed journal date string
+let journalDate = null;      // currently viewed journal date string
+let reflectionDate = null;   // currently viewed reflection date string
 let todoFilter = 'active';
 let selectedEmoji = '💪';
 let schedEmoji = '💪';
@@ -1913,10 +1928,12 @@ function escHtml(s) {
 
 function renderJournal() {
   journalDate = journalDate || todayStr();
+  reflectionDate = reflectionDate || todayStr();
   renderJournalEntry();
   renderReflection();
   renderApiStatus();
   renderPastEntries();
+  renderPastReflections();
 }
 
 // ── Daily Journal ──
@@ -1978,17 +1995,43 @@ function saveJournalEntry() {
 
 function renderReflection() {
   const today = todayStr();
-  const q = getQuoteOfDay();
-  document.getElementById('reflectionQuoteDisplay').innerHTML =
-    `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
+  const isToday = reflectionDate === today;
 
-  const saved = quoteReflections[today];
-  document.getElementById('reflectionInput').value = saved ? saved.reflection : '';
+  // Date nav label
+  document.getElementById('reflectionDateLabel').textContent = isToday
+    ? `Today — ${fmtDateLabel(reflectionDate)}`
+    : fmtDateLabel(reflectionDate);
+  const nextBtn = document.getElementById('reflectionNextBtn');
+  nextBtn.disabled = reflectionDate >= today;
+  nextBtn.style.opacity = reflectionDate >= today ? '0.3' : '1';
+
+  // Show the right quote
+  const saved = quoteReflections[reflectionDate];
+  let quoteHtml;
+  if (isToday) {
+    const q = getQuoteOfDay();
+    quoteHtml = `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
+  } else if (saved && saved.quoteText) {
+    quoteHtml = `"${escHtml(saved.quoteText)}"<div class="reflection-quote-author">${escHtml(saved.quoteAuthor || '')}</div>`;
+  } else {
+    quoteHtml = `<span style="color:var(--text-muted);font-style:normal">No quote saved for this day.</span>`;
+  }
+  document.getElementById('reflectionQuoteDisplay').innerHTML = quoteHtml;
+
+  // Prompt label
+  document.getElementById('reflectionPromptLabel').textContent = isToday
+    ? 'What does this quote mean to you?'
+    : 'Your reflection:';
+
+  // Reflection text
+  document.getElementById('reflectionInput').value = saved ? (saved.reflection || '') : '';
   updateWordCount('reflectionInput', 'reflectionWordCount');
 
+  // Ask AI button — show if key exists and there's something written
   const hasKey = !!localStorage.getItem('pdt_gemini_key');
   document.getElementById('askAIBtn').style.display = hasKey ? 'inline-flex' : 'none';
 
+  // AI response
   if (saved && saved.aiResponse) {
     showAiResponse(saved.aiResponse);
   } else {
@@ -2007,15 +2050,58 @@ function onReflectionInput() {
 }
 
 function saveReflection() {
-  const today = todayStr();
   const text = document.getElementById('reflectionInput').value.trim();
-  const q = getQuoteOfDay();
-  if (!quoteReflections[today]) quoteReflections[today] = {};
-  quoteReflections[today].reflection = text;
-  quoteReflections[today].quoteText = q.text;
-  quoteReflections[today].quoteAuthor = q.author;
+  if (!quoteReflections[reflectionDate]) quoteReflections[reflectionDate] = {};
+  quoteReflections[reflectionDate].reflection = text;
+  // Only save quote metadata on today (past days already have it stored)
+  if (reflectionDate === todayStr()) {
+    const q = getQuoteOfDay();
+    quoteReflections[reflectionDate].quoteText = q.text;
+    quoteReflections[reflectionDate].quoteAuthor = q.author;
+  }
   saveReflections();
   flashSaved('reflectionSaveIndicator');
+  renderPastReflections();
+}
+
+function shiftReflectionDay(dir) {
+  const [y, m, d] = reflectionDate.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + dir);
+  const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  if (next > todayStr()) return;
+  reflectionDate = next;
+  renderReflection();
+}
+
+function goToReflectionToday() {
+  reflectionDate = todayStr();
+  renderReflection();
+}
+
+function renderPastReflections() {
+  const card = document.getElementById('pastReflectionsCard');
+  const list = document.getElementById('pastReflectionsList');
+  const entries = Object.entries(quoteReflections)
+    .filter(([ds, v]) => ds !== todayStr() && v.reflection && v.reflection.trim())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 15);
+
+  if (entries.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = entries.map(([ds, v]) => `
+    <div class="past-entry" onclick="openPastReflection('${ds}')">
+      <div class="past-entry-date">${fmtDateLabel(ds)}</div>
+      ${v.quoteText ? `<div style="font-size:12px;color:var(--text-muted);font-style:italic;margin-bottom:6px">"${escHtml(v.quoteText.slice(0,80))}${v.quoteText.length>80?'…':''}"</div>` : ''}
+      <div class="past-entry-preview">${escHtml(v.reflection.slice(0, 140))}${v.reflection.length > 140 ? '…' : ''}</div>
+      ${v.aiResponse ? `<div style="font-size:11px;color:#10B981;margin-top:6px;font-weight:700">✨ AI responded</div>` : ''}
+    </div>`).join('');
+}
+
+function openPastReflection(ds) {
+  reflectionDate = ds;
+  renderReflection();
+  document.getElementById('reflectionQuoteDisplay').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function askAI() {
@@ -2059,10 +2145,10 @@ async function askAI() {
     const reply = data.candidates[0].content.parts[0].text;
     showAiResponse(reply);
 
-    const today = todayStr();
-    if (!quoteReflections[today]) quoteReflections[today] = {};
-    quoteReflections[today].aiResponse = reply;
+    if (!quoteReflections[reflectionDate]) quoteReflections[reflectionDate] = {};
+    quoteReflections[reflectionDate].aiResponse = reply;
     saveReflections();
+    renderPastReflections();
   } catch (err) {
     document.getElementById('aiResponseText').innerHTML =
       `<span style="color:#EF4444">Error: ${escHtml(err.message)}. Double-check your API key.</span>`;
@@ -2213,6 +2299,7 @@ function init() {
   });
 
   journalDate = todayStr();
+  reflectionDate = todayStr();
   initQuote();
   renderToday();
   renderEmojiGrid();
