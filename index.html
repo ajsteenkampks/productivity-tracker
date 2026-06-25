@@ -816,12 +816,12 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       <div class="journal-toolbar">
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" onclick="saveReflection()">Save Reflection</button>
-          <button class="btn btn-outline btn-sm" id="askClaudeBtn" onclick="askClaude()" style="display:none">✨ Ask Claude</button>
+          <button class="btn btn-outline btn-sm" id="askAIBtn" onclick="askAI()" style="display:none">✨ Ask AI</button>
         </div>
         <span id="reflectionWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
       </div>
       <div id="aiResponseBox" style="display:none" class="ai-box">
-        <div class="ai-box-label">✨ Claude's Response</div>
+        <div class="ai-box-label">✨ AI's Response</div>
         <div class="ai-box-text" id="aiResponseText"></div>
       </div>
     </div>
@@ -856,11 +856,11 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
     <!-- API Settings -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🔑 Claude API Key</div>
+        <div class="card-title">🔑 AI Key (Free)</div>
       </div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
-        To get AI responses on your quote reflections, enter your Anthropic API key. It's stored only in this browser and never shared.
-        Get a key at <b>console.anthropic.com</b>.
+        Get a <b>free</b> Google Gemini API key — no credit card needed, just a Google account. Go to
+        <b>aistudio.google.com/app/apikey</b>, click "Create API key", and paste it below. Stored only in this browser.
       </p>
       <div class="api-key-row">
         <input class="api-key-input" id="apiKeyInput" type="password" placeholder="sk-ant-…">
@@ -1986,8 +1986,8 @@ function renderReflection() {
   document.getElementById('reflectionInput').value = saved ? saved.reflection : '';
   updateWordCount('reflectionInput', 'reflectionWordCount');
 
-  const hasKey = !!localStorage.getItem('pdt_api_key');
-  document.getElementById('askClaudeBtn').style.display = hasKey ? 'inline-flex' : 'none';
+  const hasKey = !!localStorage.getItem('pdt_gemini_key');
+  document.getElementById('askAIBtn').style.display = hasKey ? 'inline-flex' : 'none';
 
   if (saved && saved.aiResponse) {
     showAiResponse(saved.aiResponse);
@@ -2018,49 +2018,45 @@ function saveReflection() {
   flashSaved('reflectionSaveIndicator');
 }
 
-async function askClaude() {
+async function askAI() {
   const reflection = document.getElementById('reflectionInput').value.trim();
-  if (!reflection) { alert('Write your reflection first, then ask Claude.'); return; }
+  if (!reflection) { alert('Write your reflection first, then ask AI.'); return; }
   saveReflection();
 
-  const apiKey = localStorage.getItem('pdt_api_key');
-  if (!apiKey) { alert('Add your Claude API key in the settings below.'); return; }
+  const apiKey = localStorage.getItem('pdt_gemini_key');
+  if (!apiKey) { alert('Add your free Gemini API key in the settings below.'); return; }
 
   const q = getQuoteOfDay();
-  const btn = document.getElementById('askClaudeBtn');
+  const btn = document.getElementById('askAIBtn');
   btn.disabled = true;
   btn.textContent = 'Thinking…';
 
   document.getElementById('aiResponseBox').style.display = 'block';
   document.getElementById('aiResponseText').innerHTML =
-    `<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div> Claude is thinking…</div>`;
+    `<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div> AI is thinking…</div>`;
+
+  const prompt = `Quote of the day: "${q.text}" ${q.author}\n\nThe user reflected: "${reflection}"\n\nRespond thoughtfully in 2–3 sentences. You can agree, respectfully push back, or add something meaningful. Be warm and personal. Don't start your response with "I".`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 350,
-        messages: [{
-          role: 'user',
-          content: `Quote of the day: "${q.text}" ${q.author}\n\nThe user reflected: "${reflection}"\n\nRespond thoughtfully in 2–3 sentences. You can agree, respectfully push back, or add something meaningful. Be warm and personal. Don't start your response with "I".`
-        }]
-      })
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 350, temperature: 0.75 }
+        })
+      }
+    );
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || 'API error');
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
     }
 
     const data = await res.json();
-    const reply = data.content[0].text;
+    const reply = data.candidates[0].content.parts[0].text;
     showAiResponse(reply);
 
     const today = todayStr();
@@ -2069,10 +2065,10 @@ async function askClaude() {
     saveReflections();
   } catch (err) {
     document.getElementById('aiResponseText').innerHTML =
-      `<span style="color:#EF4444">Error: ${escHtml(err.message)}. Check your API key is correct.</span>`;
+      `<span style="color:#EF4444">Error: ${escHtml(err.message)}. Double-check your API key.</span>`;
   } finally {
     btn.disabled = false;
-    btn.textContent = '✨ Ask Claude';
+    btn.textContent = '✨ Ask AI';
   }
 }
 
@@ -2111,25 +2107,25 @@ function openPastEntry(ds) {
 function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key) { alert('Enter an API key first.'); return; }
-  localStorage.setItem('pdt_api_key', key);
+  localStorage.setItem('pdt_gemini_key', key);
   document.getElementById('apiKeyInput').value = '';
   renderApiStatus();
-  document.getElementById('askClaudeBtn').style.display = 'inline-flex';
+  document.getElementById('askAIBtn').style.display = 'inline-flex';
 }
 
 function clearApiKey() {
   if (!confirm('Remove your saved API key?')) return;
-  localStorage.removeItem('pdt_api_key');
+  localStorage.removeItem('pdt_gemini_key');
   renderApiStatus();
-  document.getElementById('askClaudeBtn').style.display = 'none';
+  document.getElementById('askAIBtn').style.display = 'none';
   document.getElementById('aiResponseBox').style.display = 'none';
 }
 
 function renderApiStatus() {
   const el = document.getElementById('apiStatus');
-  const has = !!localStorage.getItem('pdt_api_key');
+  const has = !!localStorage.getItem('pdt_gemini_key');
   el.className = 'api-status ' + (has ? 'ok' : 'none');
-  el.textContent = has ? '✓ API key saved — Claude responses are enabled.' : 'No API key saved.';
+  el.textContent = has ? '✓ Gemini key saved — AI responses are enabled.' : 'No API key saved. Get a free one at aistudio.google.com/app/apikey';
 }
 
 // ── Helpers ──
