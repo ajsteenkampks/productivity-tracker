@@ -621,6 +621,44 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 .past-entry-date { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
 .past-entry-preview { font-size: 13px; color: #D1D5DB; line-height: 1.5; white-space: pre-wrap; }
 
+/* ─── Chat UI ─── */
+.chat-messages {
+  min-height: 160px; max-height: 420px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px; background: #0A0A0A;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.chat-bubble { max-width: 88%; word-break: break-word; }
+.chat-bubble.user { align-self: flex-end; }
+.chat-bubble.ai { align-self: flex-start; }
+.chat-bubble-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+.chat-bubble.ai .chat-bubble-label { color: #10B981; }
+.chat-bubble-body {
+  padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.7;
+}
+.chat-bubble.user .chat-bubble-body { background: #1A1A1A; border: 1px solid #2A2A2A; color: #FFFFFF; border-radius: 12px 12px 2px 12px; }
+.chat-bubble.ai .chat-bubble-body { background: #071A07; border: 1px solid #14532D; color: #D1FAE5; border-radius: 12px 12px 12px 2px; }
+.chat-bubble-time { font-size: 10px; color: var(--text-muted); margin-top: 3px; text-align: right; }
+.chat-bubble.ai .chat-bubble-time { text-align: left; }
+.chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input {
+  flex: 1; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: #0A0A0A; color: #FFFFFF;
+  font-size: 14px; font-family: inherit; resize: none; min-height: 44px; max-height: 120px;
+}
+.chat-input:focus { outline: none; border-color: #FFFFFF; }
+.chat-input::placeholder { color: #374151; }
+.chat-start-box { padding: 8px 0 4px; }
+.past-chat-entry {
+  padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: #0A0A0A; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s;
+}
+.past-chat-entry:hover { border-color: #FFFFFF; }
+.past-chat-date { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+.past-chat-quote { font-size: 12px; font-style: italic; color: #9CA3AF; margin-bottom: 6px; }
+.past-chat-meta { font-size: 12px; color: var(--text-muted); }
+
 /* ─── Schedule ─── */
 .today-sched-card { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
 .today-sched-card .card-title { margin-bottom: 12px; }
@@ -819,32 +857,27 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
   <!-- ── JOURNAL PANEL ── -->
   <section class="panel" id="panel-journal">
 
-    <!-- Quote Reflection -->
+    <!-- Quote Chat -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">💬 Quote Reflection</div>
-        <span id="reflectionSaveIndicator" class="save-indicator">Saved ✓</span>
-      </div>
-      <div class="journal-nav">
-        <button class="btn btn-ghost btn-sm" onclick="shiftReflectionDay(-1)">◀</button>
-        <div class="journal-date-label" id="reflectionDateLabel"></div>
-        <button class="btn btn-ghost btn-sm" id="reflectionNextBtn" onclick="shiftReflectionDay(1)">▶</button>
-        <button class="btn btn-outline btn-sm" onclick="goToReflectionToday()">Today</button>
-      </div>
-      <div id="reflectionQuoteDisplay" class="reflection-quote"></div>
-      <label class="form-label" id="reflectionPromptLabel">What does this quote mean to you?</label>
-      <textarea class="journal-textarea" id="reflectionInput" placeholder="Write your thoughts on today's quote…" oninput="onReflectionInput()"></textarea>
-      <div class="journal-toolbar">
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="saveReflection()">Save Reflection</button>
-          <button class="btn btn-outline btn-sm" id="askAIBtn" onclick="askAI()" style="display:none">✨ Ask AI</button>
+        <div class="card-title">💬 Quote Chat</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="shiftReflectionDay(-1)">◀</button>
+          <span id="reflectionDateLabel" style="font-size:12px;font-weight:600;color:var(--text-muted)"></span>
+          <button class="btn btn-ghost btn-sm" id="reflectionNextBtn" onclick="shiftReflectionDay(1)">▶</button>
+          <button class="btn btn-outline btn-sm" onclick="goToReflectionToday()">Today</button>
         </div>
-        <span id="reflectionWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
       </div>
-      <div id="aiResponseBox" style="display:none" class="ai-box">
-        <div class="ai-box-label">✨ AI's Response</div>
-        <div class="ai-box-text" id="aiResponseText"></div>
+      <div id="chatQuoteDisplay" class="reflection-quote" style="margin-top:12px"></div>
+      <div id="chatArea"></div>
+    </div>
+
+    <!-- Past Chats -->
+    <div class="card" id="pastChatsCard" style="display:none">
+      <div class="card-header">
+        <div class="card-title">📚 Past Quote Chats</div>
       </div>
+      <div id="pastChatsList"></div>
     </div>
 
     <!-- Daily Journal -->
@@ -864,14 +897,6 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
         <button class="btn btn-primary btn-sm" onclick="saveJournalEntry()">Save Entry</button>
         <span id="journalWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
       </div>
-    </div>
-
-    <!-- Past Reflections History -->
-    <div class="card" id="pastReflectionsCard" style="display:none">
-      <div class="card-header">
-        <div class="card-title">📚 Past Reflections</div>
-      </div>
-      <div id="pastReflectionsList"></div>
     </div>
 
     <!-- Past Journal Entries -->
@@ -1278,7 +1303,8 @@ let dailyLogs = {};       // { 'YYYY-MM-DD': { [actId]: { done, duration } } }
 let todos = [];           // [{ id, text, priority, done, createdAt }]
 let scheduledActs = [];   // [{ id, name, icon, duration, category, time, days:[0-6] }]
 let journalEntries = {};  // { 'YYYY-MM-DD': 'text' }
-let quoteReflections = {}; // { 'YYYY-MM-DD': { reflection, aiResponse, quoteText, quoteAuthor } }
+let quoteReflections = {}; // kept for backward compat
+let quoteChats = {};       // { 'YYYY-MM-DD': { quoteText, quoteAuthor, messages:[{role,text,time}] } }
 let calYear, calMonth, selectedDay = null;
 let journalDate = null;      // currently viewed journal date string
 let reflectionDate = null;   // currently viewed reflection date string
@@ -1302,7 +1328,8 @@ function load() {
     scheduledActs     = JSON.parse(localStorage.getItem('pdt_sched')    || '[]');
     journalEntries    = JSON.parse(localStorage.getItem('pdt_journal')  || '{}');
     quoteReflections  = JSON.parse(localStorage.getItem('pdt_reflect')  || '{}');
-  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; }
+    quoteChats        = JSON.parse(localStorage.getItem('pdt_chats')    || '{}');
+  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; quoteChats = {}; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
@@ -1314,6 +1341,7 @@ function saveTodos()    { localStorage.setItem('pdt_todos',  JSON.stringify(todo
 function saveScheduled()   { localStorage.setItem('pdt_sched',   JSON.stringify(scheduledActs)); }
 function saveJournal()     { localStorage.setItem('pdt_journal', JSON.stringify(journalEntries)); }
 function saveReflections() { localStorage.setItem('pdt_reflect', JSON.stringify(quoteReflections)); }
+function saveChats()       { localStorage.setItem('pdt_chats',   JSON.stringify(quoteChats)); }
 
 // ═══════════════════════════════════════
 //  UTILS
@@ -1996,14 +2024,20 @@ function escHtml(s) {
 //  JOURNAL
 // ═══════════════════════════════════════
 
+function getQuoteOfDay(dateStr) {
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+  const doy = Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000);
+  return QUOTES[doy % QUOTES.length];
+}
+
 function renderJournal() {
   journalDate = journalDate || todayStr();
   reflectionDate = reflectionDate || todayStr();
+  renderChat();
   renderJournalEntry();
-  renderReflection();
   renderApiStatus();
   renderPastEntries();
-  renderPastReflections();
+  renderPastChats();
 }
 
 // ── Daily Journal ──
@@ -2061,137 +2095,187 @@ function saveJournalEntry() {
   renderPastEntries();
 }
 
-// ── Quote Reflection ──
-
-function renderReflection() {
-  const today = todayStr();
-  const isToday = reflectionDate === today;
-
-  // Date nav label
-  document.getElementById('reflectionDateLabel').textContent = isToday
-    ? `Today — ${fmtDateLabel(reflectionDate)}`
-    : fmtDateLabel(reflectionDate);
-  const nextBtn = document.getElementById('reflectionNextBtn');
-  nextBtn.disabled = reflectionDate >= today;
-  nextBtn.style.opacity = reflectionDate >= today ? '0.3' : '1';
-
-  // Show the right quote
-  const saved = quoteReflections[reflectionDate];
-  let quoteHtml;
-  if (isToday) {
-    const q = getQuoteOfDay();
-    quoteHtml = `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
-  } else if (saved && saved.quoteText) {
-    quoteHtml = `"${escHtml(saved.quoteText)}"<div class="reflection-quote-author">${escHtml(saved.quoteAuthor || '')}</div>`;
-  } else {
-    quoteHtml = `<span style="color:var(--text-muted);font-style:normal">No quote saved for this day.</span>`;
-  }
-  document.getElementById('reflectionQuoteDisplay').innerHTML = quoteHtml;
-
-  // Prompt label
-  document.getElementById('reflectionPromptLabel').textContent = isToday
-    ? 'What does this quote mean to you?'
-    : 'Your reflection:';
-
-  // Reflection text
-  document.getElementById('reflectionInput').value = saved ? (saved.reflection || '') : '';
-  updateWordCount('reflectionInput', 'reflectionWordCount');
-
-  // Ask AI button — show if key exists and there's something written
-  const hasKey = !!localStorage.getItem('pdt_gemini_key');
-  document.getElementById('askAIBtn').style.display = hasKey ? 'inline-flex' : 'none';
-
-  // AI response
-  if (saved && saved.aiResponse) {
-    showAiResponse(saved.aiResponse);
-  } else {
-    document.getElementById('aiResponseBox').style.display = 'none';
-  }
-  document.getElementById('reflectionSaveIndicator').classList.remove('show');
-}
-
-function onReflectionInput() {
-  updateWordCount('reflectionInput', 'reflectionWordCount');
-  clearTimeout(reflectionSaveTimer);
-  reflectionSaveTimer = setTimeout(() => {
-    saveReflection();
-    flashSaved('reflectionSaveIndicator');
-  }, 1200);
-}
-
-function saveReflection() {
-  const text = document.getElementById('reflectionInput').value.trim();
-  if (!quoteReflections[reflectionDate]) quoteReflections[reflectionDate] = {};
-  quoteReflections[reflectionDate].reflection = text;
-  // Only save quote metadata on today (past days already have it stored)
-  if (reflectionDate === todayStr()) {
-    const q = getQuoteOfDay();
-    quoteReflections[reflectionDate].quoteText = q.text;
-    quoteReflections[reflectionDate].quoteAuthor = q.author;
-  }
-  saveReflections();
-  flashSaved('reflectionSaveIndicator');
-  renderPastReflections();
-}
-
 function shiftReflectionDay(dir) {
+  clearTimeout(reflectionSaveTimer);
   const [y, m, d] = reflectionDate.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + dir);
   const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
   if (next > todayStr()) return;
   reflectionDate = next;
-  renderReflection();
+  renderChat();
 }
 
 function goToReflectionToday() {
   reflectionDate = todayStr();
-  renderReflection();
-}
-
-function renderPastReflections() {
-  const card = document.getElementById('pastReflectionsCard');
-  const list = document.getElementById('pastReflectionsList');
-  const entries = Object.entries(quoteReflections)
-    .filter(([ds, v]) => ds !== todayStr() && v.reflection && v.reflection.trim())
-    .sort(([a], [b]) => b.localeCompare(a))
-    .slice(0, 15);
-
-  if (entries.length === 0) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  list.innerHTML = entries.map(([ds, v]) => `
-    <div class="past-entry" onclick="openPastReflection('${ds}')">
-      <div class="past-entry-date">${fmtDateLabel(ds)}</div>
-      ${v.quoteText ? `<div style="font-size:12px;color:var(--text-muted);font-style:italic;margin-bottom:6px">"${escHtml(v.quoteText.slice(0,80))}${v.quoteText.length>80?'…':''}"</div>` : ''}
-      <div class="past-entry-preview">${escHtml(v.reflection.slice(0, 140))}${v.reflection.length > 140 ? '…' : ''}</div>
-      ${v.aiResponse ? `<div style="font-size:11px;color:#10B981;margin-top:6px;font-weight:700">✨ AI responded</div>` : ''}
-    </div>`).join('');
+  renderChat();
 }
 
 function openPastReflection(ds) {
   reflectionDate = ds;
-  renderReflection();
-  document.getElementById('reflectionQuoteDisplay').scrollIntoView({ behavior: 'smooth' });
+  renderChat();
+  document.getElementById('chatQuoteDisplay').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function askAI() {
-  const reflection = document.getElementById('reflectionInput').value.trim();
-  if (!reflection) { alert('Write your reflection first, then ask AI.'); return; }
-  saveReflection();
+// ── Chat ──
 
+function renderChat() {
+  const today = todayStr();
+  const isToday = reflectionDate === today;
+
+  // Date label
+  const label = document.getElementById('reflectionDateLabel');
+  if (label) label.textContent = isToday ? 'Today' : fmtDateLabel(reflectionDate);
+  const nextBtn = document.getElementById('reflectionNextBtn');
+  if (nextBtn) { nextBtn.disabled = reflectionDate >= today; nextBtn.style.opacity = reflectionDate >= today ? '0.3' : '1'; }
+
+  // Quote display
+  const qDisplay = document.getElementById('chatQuoteDisplay');
+  if (qDisplay) {
+    const chat = quoteChats[reflectionDate];
+    if (isToday) {
+      const q = getQuoteOfDay();
+      qDisplay.innerHTML = `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
+    } else if (chat && chat.quoteText) {
+      qDisplay.innerHTML = `"${escHtml(chat.quoteText)}"<div class="reflection-quote-author">${escHtml(chat.quoteAuthor || '')}</div>`;
+    } else {
+      qDisplay.innerHTML = `<span style="color:var(--text-muted);font-style:normal">No chat saved for this day.</span>`;
+    }
+  }
+
+  const area = document.getElementById('chatArea');
+  if (!area) return;
+  const chat = quoteChats[reflectionDate];
+  const hasKey = !!localStorage.getItem('pdt_gemini_key');
+  const msgs = chat ? chat.messages : [];
+
+  if (msgs.length === 0) {
+    // No messages yet — show start form
+    area.innerHTML = `
+      <div class="chat-start-box">
+        <label class="form-label" style="margin-bottom:8px">What does this quote mean to you?</label>
+        <textarea class="journal-textarea" id="chatStartInput" placeholder="Write your reflection to start the chat..." style="min-height:120px"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          ${hasKey
+            ? `<button class="btn btn-primary" onclick="startChat()">Start Chat →</button>`
+            : `<div>
+                <button class="btn btn-outline" onclick="startChatNoAI()">Save Reflection</button>
+                <span style="font-size:12px;color:var(--text-muted);margin-left:10px">Add a Gemini key below to chat with AI</span>
+               </div>`
+          }
+          <span id="chatWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
+        </div>
+      </div>`;
+    const ta = document.getElementById('chatStartInput');
+    if (ta) ta.addEventListener('input', () => {
+      const w = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+      const wc = document.getElementById('chatWordCount');
+      if (wc) wc.textContent = `${w} word${w !== 1 ? 's' : ''}`;
+    });
+  } else {
+    // Show messages
+    const bubbles = msgs.map(m => `
+      <div class="chat-bubble ${m.role}">
+        <div class="chat-bubble-label">${m.role === 'user' ? 'You' : '✨ AI'}</div>
+        <div class="chat-bubble-body">${escHtml(m.text)}</div>
+        ${m.time ? `<div class="chat-bubble-time">${m.time}</div>` : ''}
+      </div>`).join('');
+
+    area.innerHTML = `
+      <div class="chat-messages" id="chatMessages">${bubbles}</div>
+      ${isToday || msgs.length > 0 ? `
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="Continue the conversation..." rows="2"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"></textarea>
+        <button class="btn btn-primary" id="chatSendBtn" onclick="sendChatMessage()">Send</button>
+      </div>` : ''}`;
+
+    // Scroll to bottom
+    const cm = document.getElementById('chatMessages');
+    if (cm) cm.scrollTop = cm.scrollHeight;
+  }
+}
+
+async function startChat() {
+  const ta = document.getElementById('chatStartInput');
+  if (!ta || !ta.value.trim()) { alert('Write your reflection first.'); return; }
+  const text = ta.value.trim();
   const apiKey = localStorage.getItem('pdt_gemini_key');
-  if (!apiKey) { alert('Add your free Gemini API key in the settings below.'); return; }
+  if (!apiKey) { alert('Add your Gemini API key in the settings below.'); return; }
 
-  const q = getQuoteOfDay();
-  const btn = document.getElementById('askAIBtn');
-  btn.disabled = true;
-  btn.textContent = 'Thinking…';
+  const q = reflectionDate === todayStr() ? getQuoteOfDay() : { text: quoteChats[reflectionDate]?.quoteText || '', author: '' };
+  const firstMsg = `Today's quote is: "${q.text}" ${q.author}. Here's what it means to me: ${text}`;
 
-  document.getElementById('aiResponseBox').style.display = 'block';
-  document.getElementById('aiResponseText').innerHTML =
-    `<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div> AI is thinking…</div>`;
+  if (!quoteChats[reflectionDate]) {
+    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, messages: [] };
+  }
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  quoteChats[reflectionDate].messages.push({ role: 'user', text: firstMsg, time });
+  saveChats();
+  renderChat();
+  renderPastChats();
+  await getAIReply();
+}
 
-  const prompt = `Quote of the day: "${q.text}" ${q.author}\n\nThe user reflected: "${reflection}"\n\nRespond thoughtfully in 2–3 sentences. You can agree, respectfully push back, or add something meaningful. Be warm and personal. Don't start your response with "I".`;
+function startChatNoAI() {
+  const ta = document.getElementById('chatStartInput');
+  if (!ta || !ta.value.trim()) { alert('Write something first.'); return; }
+  const text = ta.value.trim();
+  const q = reflectionDate === todayStr() ? getQuoteOfDay() : { text: '', author: '' };
+  if (!quoteChats[reflectionDate]) {
+    quoteChats[reflectionDate] = { quoteText: q.text, quoteAuthor: q.author, messages: [] };
+  }
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  quoteChats[reflectionDate].messages.push({ role: 'user', text, time });
+  saveChats();
+  renderChat();
+  renderPastChats();
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  if (!input || !input.value.trim()) return;
+  const text = input.value.trim();
+  const apiKey = localStorage.getItem('pdt_gemini_key');
+
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  quoteChats[reflectionDate].messages.push({ role: 'user', text, time });
+  saveChats();
+  input.value = '';
+  renderChat();
+
+  if (apiKey) {
+    await getAIReply();
+  }
+}
+
+async function getAIReply() {
+  const apiKey = localStorage.getItem('pdt_gemini_key');
+  if (!apiKey) return;
+  const chat = quoteChats[reflectionDate];
+  if (!chat) return;
+
+  // Show typing indicator
+  const cm = document.getElementById('chatMessages');
+  if (cm) {
+    const typing = document.createElement('div');
+    typing.className = 'chat-bubble ai';
+    typing.id = 'typingIndicator';
+    typing.innerHTML = `<div class="chat-bubble-label">✨ AI</div><div class="chat-bubble-body"><div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>`;
+    cm.appendChild(typing);
+    cm.scrollTop = cm.scrollHeight;
+  }
+
+  // Disable send button
+  const sendBtn = document.getElementById('chatSendBtn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  const systemInstruction = `You are a warm, thoughtful conversation partner helping someone reflect on a daily quote. The quote is: "${chat.quoteText}" ${chat.quoteAuthor}. Engage meaningfully with the user's thoughts — agree, add perspective, gently challenge ideas, or ask follow-up questions. Keep responses personal and concise (2-4 sentences).`;
+
+  const contents = chat.messages.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.text }]
+  }));
 
   try {
     const res = await fetch(
@@ -2200,37 +2284,49 @@ async function askAI() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 350, temperature: 0.75 }
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents,
+          generationConfig: { maxOutputTokens: 400, temperature: 0.75 }
         })
       }
     );
-
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error?.message || `HTTP ${res.status}`);
     }
-
     const data = await res.json();
     const reply = data.candidates[0].content.parts[0].text;
-    showAiResponse(reply);
-
-    if (!quoteReflections[reflectionDate]) quoteReflections[reflectionDate] = {};
-    quoteReflections[reflectionDate].aiResponse = reply;
-    saveReflections();
-    renderPastReflections();
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chat.messages.push({ role: 'ai', text: reply, time });
   } catch (err) {
-    document.getElementById('aiResponseText').innerHTML =
-      `<span style="color:#EF4444">Error: ${escHtml(err.message)}. Double-check your API key.</span>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '✨ Ask AI';
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chat.messages.push({ role: 'ai', text: `Error: ${escHtml(err.message)}. Check your API key in settings.`, time });
   }
+
+  saveChats();
+  renderChat();
+  renderPastChats();
+  if (sendBtn) sendBtn.disabled = false;
 }
 
-function showAiResponse(text) {
-  document.getElementById('aiResponseBox').style.display = 'block';
-  document.getElementById('aiResponseText').textContent = text;
+function renderPastChats() {
+  const card = document.getElementById('pastChatsCard');
+  const list = document.getElementById('pastChatsList');
+  if (!card || !list) return;
+
+  const entries = Object.entries(quoteChats)
+    .filter(([, v]) => v.messages && v.messages.length > 0)
+    .sort(([a], [b]) => b.localeCompare(a));
+
+  if (entries.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  list.innerHTML = entries.map(([ds, v]) => `
+    <div class="past-chat-entry" onclick="openPastReflection('${ds}')">
+      <div class="past-chat-date">${fmtDateLabel(ds)}</div>
+      ${v.quoteText ? `<div class="past-chat-quote">"${escHtml(v.quoteText.slice(0,80))}${v.quoteText.length > 80 ? '...' : ''}"</div>` : ''}
+      <div class="past-chat-meta">${v.messages.length} message${v.messages.length !== 1 ? 's' : ''} · Click to open</div>
+    </div>`).join('');
 }
 
 // ── Past Entries ──
@@ -2266,15 +2362,14 @@ function saveApiKey() {
   localStorage.setItem('pdt_gemini_key', key);
   document.getElementById('apiKeyInput').value = '';
   renderApiStatus();
-  document.getElementById('askAIBtn').style.display = 'inline-flex';
+  renderChat();
 }
 
 function clearApiKey() {
   if (!confirm('Remove your saved API key?')) return;
   localStorage.removeItem('pdt_gemini_key');
   renderApiStatus();
-  document.getElementById('askAIBtn').style.display = 'none';
-  document.getElementById('aiResponseBox').style.display = 'none';
+  renderChat();
 }
 
 function renderApiStatus() {
@@ -2313,6 +2408,7 @@ function exportData() {
     scheduledActs,
     journalEntries,
     quoteReflections,
+    quoteChats,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2344,6 +2440,7 @@ function handleImportFile(e) {
       if (Array.isArray(data.scheduledActs))  { scheduledActs = data.scheduledActs;       saveScheduled(); }
       if (data.journalEntries)               { journalEntries = data.journalEntries;     saveJournal(); }
       if (data.quoteReflections)             { quoteReflections = data.quoteReflections; saveReflections(); }
+      if (data.quoteChats)                   { quoteChats = data.quoteChats;             saveChats(); }
       renderToday();
       renderActivities();
       alert('Backup restored successfully!');
