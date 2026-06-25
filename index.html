@@ -562,6 +562,57 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
   .tab-btn { font-size: 11px; padding: 12px 4px; }
 }
 
+/* ─── Journal ─── */
+.journal-textarea {
+  width: 100%; min-height: 180px; padding: 14px 16px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: #0A0A0A; color: #FFFFFF; font-size: 14px;
+  font-family: inherit; line-height: 1.8; resize: vertical;
+  transition: border-color 0.15s;
+}
+.journal-textarea:focus { outline: none; border-color: #FFFFFF; }
+.journal-textarea::placeholder { color: #374151; }
+.journal-toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.save-indicator { font-size: 12px; color: var(--success); font-weight: 600; opacity: 0; transition: opacity 0.3s; }
+.save-indicator.show { opacity: 1; }
+.journal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.journal-date-label { flex: 1; text-align: center; font-weight: 700; font-size: 14px; color: #FFFFFF; }
+.reflection-quote {
+  background: #0A0A0A; border-left: 3px solid #FFFFFF;
+  padding: 14px 16px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 16px; font-style: italic; font-size: 14px; line-height: 1.7; color: #D1D5DB;
+}
+.reflection-quote-author { font-style: normal; font-size: 12px; color: var(--text-muted); margin-top: 6px; font-weight: 600; }
+.ai-box {
+  margin-top: 16px; padding: 16px; background: #071A07;
+  border: 1.5px solid #14532D; border-radius: var(--radius-sm);
+}
+.ai-box-label { font-size: 11px; font-weight: 700; color: #10B981; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.ai-box-text { font-size: 14px; line-height: 1.8; color: #D1FAE5; }
+.ai-loading { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #6EE7B7; }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; background: #10B981; animation: pulse 1.2s infinite; }
+.ai-dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
+.api-key-row { display: flex; gap: 8px; }
+.api-key-input {
+  flex: 1; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: #0A0A0A; color: #FFFFFF;
+  font-size: 13px; font-family: monospace;
+}
+.api-key-input:focus { outline: none; border-color: #FFFFFF; }
+.api-key-input::placeholder { color: #374151; font-family: inherit; }
+.api-status { font-size: 12px; margin-top: 8px; font-weight: 600; }
+.api-status.ok { color: var(--success); }
+.api-status.none { color: var(--text-muted); }
+.past-entry {
+  padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: #0A0A0A; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s;
+}
+.past-entry:hover { border-color: #FFFFFF; }
+.past-entry-date { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+.past-entry-preview { font-size: 13px; color: #D1D5DB; line-height: 1.5; white-space: pre-wrap; }
+
 /* ─── Schedule ─── */
 .today-sched-card { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
 .today-sched-card .card-title { margin-bottom: 12px; }
@@ -649,6 +700,7 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
     <button class="tab-btn active" data-tab="today" onclick="switchTab('today')">📋 <span>Today</span></button>
     <button class="tab-btn" data-tab="todos" onclick="switchTab('todos')">✅ <span>To-Do</span></button>
     <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">📅 <span>Calendar</span></button>
+    <button class="tab-btn" data-tab="journal" onclick="switchTab('journal')">📖 <span>Journal</span></button>
     <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">⚙️ <span>Activities</span></button>
   </div>
 </div>
@@ -747,6 +799,77 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       </div>
       <div id="schedList"></div>
     </div>
+  </section>
+
+  <!-- ── JOURNAL PANEL ── -->
+  <section class="panel" id="panel-journal">
+
+    <!-- Quote Reflection -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💬 Quote Reflection</div>
+        <span id="reflectionSaveIndicator" class="save-indicator">Saved ✓</span>
+      </div>
+      <div id="reflectionQuoteDisplay" class="reflection-quote"></div>
+      <label class="form-label">What does this quote mean to you?</label>
+      <textarea class="journal-textarea" id="reflectionInput" placeholder="Write your thoughts on today's quote…" oninput="onReflectionInput()"></textarea>
+      <div class="journal-toolbar">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveReflection()">Save Reflection</button>
+          <button class="btn btn-outline btn-sm" id="askClaudeBtn" onclick="askClaude()" style="display:none">✨ Ask Claude</button>
+        </div>
+        <span id="reflectionWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
+      </div>
+      <div id="aiResponseBox" style="display:none" class="ai-box">
+        <div class="ai-box-label">✨ Claude's Response</div>
+        <div class="ai-box-text" id="aiResponseText"></div>
+      </div>
+    </div>
+
+    <!-- Daily Journal -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📝 Daily Journal</div>
+        <span id="journalSaveIndicator" class="save-indicator">Saved ✓</span>
+      </div>
+      <div class="journal-nav">
+        <button class="btn btn-ghost btn-sm" onclick="shiftJournalDay(-1)">◀</button>
+        <div class="journal-date-label" id="journalDateLabel"></div>
+        <button class="btn btn-ghost btn-sm" id="journalNextBtn" onclick="shiftJournalDay(1)">▶</button>
+        <button class="btn btn-outline btn-sm" onclick="goToJournalToday()">Today</button>
+      </div>
+      <textarea class="journal-textarea" id="journalInput" placeholder="Write your thoughts for today…" oninput="onJournalInput()" style="min-height:220px"></textarea>
+      <div class="journal-toolbar">
+        <button class="btn btn-primary btn-sm" onclick="saveJournalEntry()">Save Entry</button>
+        <span id="journalWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
+      </div>
+    </div>
+
+    <!-- Past Reflections -->
+    <div class="card" id="pastEntriesCard" style="display:none">
+      <div class="card-header">
+        <div class="card-title">📚 Past Journal Entries</div>
+      </div>
+      <div id="pastEntriesList"></div>
+    </div>
+
+    <!-- API Settings -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔑 Claude API Key</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
+        To get AI responses on your quote reflections, enter your Anthropic API key. It's stored only in this browser and never shared.
+        Get a key at <b>console.anthropic.com</b>.
+      </p>
+      <div class="api-key-row">
+        <input class="api-key-input" id="apiKeyInput" type="password" placeholder="sk-ant-…">
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+        <button class="btn btn-danger-ghost btn-sm" onclick="clearApiKey()">Clear</button>
+      </div>
+      <div class="api-status none" id="apiStatus">No API key saved.</div>
+    </div>
+
   </section>
 
   <!-- ── ACTIVITIES PANEL ── -->
@@ -1018,12 +1141,17 @@ let activities = [];      // [{ id, name, icon, duration, category }]
 let dailyLogs = {};       // { 'YYYY-MM-DD': { [actId]: { done, duration } } }
 let todos = [];           // [{ id, text, priority, done, createdAt }]
 let scheduledActs = [];   // [{ id, name, icon, duration, category, time, days:[0-6] }]
+let journalEntries = {};  // { 'YYYY-MM-DD': 'text' }
+let quoteReflections = {}; // { 'YYYY-MM-DD': { reflection, aiResponse, quoteText, quoteAuthor } }
 let calYear, calMonth, selectedDay = null;
+let journalDate = null;   // currently viewed journal date string
 let todoFilter = 'active';
 let selectedEmoji = '💪';
 let schedEmoji = '💪';
 let editingActId = null;
 let editingSchedId = null;
+let journalSaveTimer = null;
+let reflectionSaveTimer = null;
 
 // ═══════════════════════════════════════
 //  STORAGE
@@ -1034,8 +1162,10 @@ function load() {
     activities     = JSON.parse(localStorage.getItem('pdt_acts')   || '[]');
     dailyLogs      = JSON.parse(localStorage.getItem('pdt_logs')   || '{}');
     todos          = JSON.parse(localStorage.getItem('pdt_todos')  || '[]');
-    scheduledActs  = JSON.parse(localStorage.getItem('pdt_sched')  || '[]');
-  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; }
+    scheduledActs     = JSON.parse(localStorage.getItem('pdt_sched')    || '[]');
+    journalEntries    = JSON.parse(localStorage.getItem('pdt_journal')  || '{}');
+    quoteReflections  = JSON.parse(localStorage.getItem('pdt_reflect')  || '{}');
+  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
@@ -1044,7 +1174,9 @@ function load() {
 function saveActs()     { localStorage.setItem('pdt_acts',   JSON.stringify(activities)); }
 function saveLogs()     { localStorage.setItem('pdt_logs',   JSON.stringify(dailyLogs)); }
 function saveTodos()    { localStorage.setItem('pdt_todos',  JSON.stringify(todos)); }
-function saveScheduled(){ localStorage.setItem('pdt_sched',  JSON.stringify(scheduledActs)); }
+function saveScheduled()   { localStorage.setItem('pdt_sched',   JSON.stringify(scheduledActs)); }
+function saveJournal()     { localStorage.setItem('pdt_journal', JSON.stringify(journalEntries)); }
+function saveReflections() { localStorage.setItem('pdt_reflect', JSON.stringify(quoteReflections)); }
 
 // ═══════════════════════════════════════
 //  UTILS
@@ -1139,6 +1271,7 @@ function switchTab(tab) {
   if (tab === 'today') renderToday();
   if (tab === 'todos') renderTodos();
   if (tab === 'calendar') { renderCalendar(); renderScheduleList(); }
+  if (tab === 'journal') renderJournal();
   if (tab === 'activities') renderActivities();
 }
 
@@ -1668,6 +1801,246 @@ function escHtml(s) {
 }
 
 // ═══════════════════════════════════════
+//  JOURNAL
+// ═══════════════════════════════════════
+
+function renderJournal() {
+  journalDate = journalDate || todayStr();
+  renderJournalEntry();
+  renderReflection();
+  renderApiStatus();
+  renderPastEntries();
+}
+
+// ── Daily Journal ──
+
+function renderJournalEntry() {
+  const label = document.getElementById('journalDateLabel');
+  const input = document.getElementById('journalInput');
+  const nextBtn = document.getElementById('journalNextBtn');
+  const today = todayStr();
+
+  label.textContent = journalDate === today
+    ? `Today — ${fmtDateLabel(journalDate)}`
+    : fmtDateLabel(journalDate);
+
+  input.value = journalEntries[journalDate] || '';
+  updateWordCount('journalInput', 'journalWordCount');
+  nextBtn.disabled = journalDate >= today;
+  nextBtn.style.opacity = journalDate >= today ? '0.3' : '1';
+  document.getElementById('journalSaveIndicator').classList.remove('show');
+}
+
+function shiftJournalDay(dir) {
+  const [y, m, d] = journalDate.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + dir);
+  const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  if (next > todayStr()) return;
+  journalDate = next;
+  renderJournalEntry();
+}
+
+function goToJournalToday() {
+  journalDate = todayStr();
+  renderJournalEntry();
+}
+
+function onJournalInput() {
+  updateWordCount('journalInput', 'journalWordCount');
+  clearTimeout(journalSaveTimer);
+  journalSaveTimer = setTimeout(() => {
+    saveJournalEntry();
+    flashSaved('journalSaveIndicator');
+  }, 1200);
+}
+
+function saveJournalEntry() {
+  const text = document.getElementById('journalInput').value;
+  if (text.trim()) {
+    journalEntries[journalDate] = text;
+  } else {
+    delete journalEntries[journalDate];
+  }
+  saveJournal();
+  flashSaved('journalSaveIndicator');
+  renderPastEntries();
+}
+
+// ── Quote Reflection ──
+
+function renderReflection() {
+  const today = todayStr();
+  const q = getQuoteOfDay();
+  document.getElementById('reflectionQuoteDisplay').innerHTML =
+    `"${escHtml(q.text)}"<div class="reflection-quote-author">${escHtml(q.author)}</div>`;
+
+  const saved = quoteReflections[today];
+  document.getElementById('reflectionInput').value = saved ? saved.reflection : '';
+  updateWordCount('reflectionInput', 'reflectionWordCount');
+
+  const hasKey = !!localStorage.getItem('pdt_api_key');
+  document.getElementById('askClaudeBtn').style.display = hasKey ? 'inline-flex' : 'none';
+
+  if (saved && saved.aiResponse) {
+    showAiResponse(saved.aiResponse);
+  } else {
+    document.getElementById('aiResponseBox').style.display = 'none';
+  }
+  document.getElementById('reflectionSaveIndicator').classList.remove('show');
+}
+
+function onReflectionInput() {
+  updateWordCount('reflectionInput', 'reflectionWordCount');
+  clearTimeout(reflectionSaveTimer);
+  reflectionSaveTimer = setTimeout(() => {
+    saveReflection();
+    flashSaved('reflectionSaveIndicator');
+  }, 1200);
+}
+
+function saveReflection() {
+  const today = todayStr();
+  const text = document.getElementById('reflectionInput').value.trim();
+  const q = getQuoteOfDay();
+  if (!quoteReflections[today]) quoteReflections[today] = {};
+  quoteReflections[today].reflection = text;
+  quoteReflections[today].quoteText = q.text;
+  quoteReflections[today].quoteAuthor = q.author;
+  saveReflections();
+  flashSaved('reflectionSaveIndicator');
+}
+
+async function askClaude() {
+  const reflection = document.getElementById('reflectionInput').value.trim();
+  if (!reflection) { alert('Write your reflection first, then ask Claude.'); return; }
+  saveReflection();
+
+  const apiKey = localStorage.getItem('pdt_api_key');
+  if (!apiKey) { alert('Add your Claude API key in the settings below.'); return; }
+
+  const q = getQuoteOfDay();
+  const btn = document.getElementById('askClaudeBtn');
+  btn.disabled = true;
+  btn.textContent = 'Thinking…';
+
+  document.getElementById('aiResponseBox').style.display = 'block';
+  document.getElementById('aiResponseText').innerHTML =
+    `<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div> Claude is thinking…</div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 350,
+        messages: [{
+          role: 'user',
+          content: `Quote of the day: "${q.text}" ${q.author}\n\nThe user reflected: "${reflection}"\n\nRespond thoughtfully in 2–3 sentences. You can agree, respectfully push back, or add something meaningful. Be warm and personal. Don't start your response with "I".`
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API error');
+    }
+
+    const data = await res.json();
+    const reply = data.content[0].text;
+    showAiResponse(reply);
+
+    const today = todayStr();
+    if (!quoteReflections[today]) quoteReflections[today] = {};
+    quoteReflections[today].aiResponse = reply;
+    saveReflections();
+  } catch (err) {
+    document.getElementById('aiResponseText').innerHTML =
+      `<span style="color:#EF4444">Error: ${escHtml(err.message)}. Check your API key is correct.</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Ask Claude';
+  }
+}
+
+function showAiResponse(text) {
+  document.getElementById('aiResponseBox').style.display = 'block';
+  document.getElementById('aiResponseText').textContent = text;
+}
+
+// ── Past Entries ──
+
+function renderPastEntries() {
+  const card = document.getElementById('pastEntriesCard');
+  const list = document.getElementById('pastEntriesList');
+  const entries = Object.entries(journalEntries)
+    .filter(([ds]) => ds !== todayStr())
+    .sort(([a],[b]) => b.localeCompare(a))
+    .slice(0, 10);
+
+  if (entries.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = entries.map(([ds, text]) => `
+    <div class="past-entry" onclick="openPastEntry('${ds}')">
+      <div class="past-entry-date">${fmtDateLabel(ds)}</div>
+      <div class="past-entry-preview">${escHtml(text.slice(0, 160))}${text.length > 160 ? '…' : ''}</div>
+    </div>`).join('');
+}
+
+function openPastEntry(ds) {
+  journalDate = ds;
+  renderJournalEntry();
+  document.getElementById('journalInput').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── API Key ──
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('Enter an API key first.'); return; }
+  localStorage.setItem('pdt_api_key', key);
+  document.getElementById('apiKeyInput').value = '';
+  renderApiStatus();
+  document.getElementById('askClaudeBtn').style.display = 'inline-flex';
+}
+
+function clearApiKey() {
+  if (!confirm('Remove your saved API key?')) return;
+  localStorage.removeItem('pdt_api_key');
+  renderApiStatus();
+  document.getElementById('askClaudeBtn').style.display = 'none';
+  document.getElementById('aiResponseBox').style.display = 'none';
+}
+
+function renderApiStatus() {
+  const el = document.getElementById('apiStatus');
+  const has = !!localStorage.getItem('pdt_api_key');
+  el.className = 'api-status ' + (has ? 'ok' : 'none');
+  el.textContent = has ? '✓ API key saved — Claude responses are enabled.' : 'No API key saved.';
+}
+
+// ── Helpers ──
+
+function updateWordCount(inputId, countId) {
+  const text = document.getElementById(inputId).value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  document.getElementById(countId).textContent = `${words} word${words !== 1 ? 's' : ''}`;
+}
+
+function flashSaved(indicatorId) {
+  const el = document.getElementById(indicatorId);
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ═══════════════════════════════════════
 //  BACKUP & RESTORE
 // ═══════════════════════════════════════
 
@@ -1679,6 +2052,8 @@ function exportData() {
     dailyLogs,
     todos,
     scheduledActs,
+    journalEntries,
+    quoteReflections,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1707,7 +2082,9 @@ function handleImportFile(e) {
       if (Array.isArray(data.activities))    { activities = data.activities;    saveActs(); }
       if (data.dailyLogs)                    { dailyLogs = data.dailyLogs;      saveLogs(); }
       if (Array.isArray(data.todos))         { todos = data.todos;              saveTodos(); }
-      if (Array.isArray(data.scheduledActs)) { scheduledActs = data.scheduledActs; saveScheduled(); }
+      if (Array.isArray(data.scheduledActs))  { scheduledActs = data.scheduledActs;       saveScheduled(); }
+      if (data.journalEntries)               { journalEntries = data.journalEntries;     saveJournal(); }
+      if (data.quoteReflections)             { quoteReflections = data.quoteReflections; saveReflections(); }
       renderToday();
       renderActivities();
       alert('Backup restored successfully!');
@@ -1732,6 +2109,7 @@ function init() {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
+  journalDate = todayStr();
   initQuote();
   renderToday();
   renderEmojiGrid();
