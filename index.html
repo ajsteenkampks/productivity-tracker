@@ -559,6 +559,74 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 @media (max-width: 380px) {
   .tab-btn { font-size: 11px; padding: 12px 4px; }
 }
+
+/* ─── Schedule ─── */
+.today-sched-card { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+.today-sched-card .card-title { margin-bottom: 12px; }
+.today-sched-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1.5px solid #2A2A2A;
+  border-radius: var(--radius-sm); background: #0A0A0A;
+  margin-bottom: 8px;
+}
+.today-sched-time { font-size: 17px; font-weight: 800; color: #FFFFFF; min-width: 70px; }
+.today-sched-icon { font-size: 22px; }
+.today-sched-info { flex: 1; }
+.today-sched-name { font-weight: 600; font-size: 14px; }
+.today-sched-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.sched-list-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--card);
+  margin-bottom: 8px; transition: border-color 0.15s;
+}
+.sched-list-item:hover { border-color: #FFFFFF; }
+.sched-list-icon { font-size: 24px; flex-shrink: 0; padding-top: 2px; }
+.sched-list-info { flex: 1; min-width: 0; }
+.sched-list-name { font-weight: 600; font-size: 14px; }
+.sched-list-time { font-size: 13px; font-weight: 700; color: #FFFFFF; margin-top: 2px; }
+.sched-list-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dow-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.dow-pill {
+  font-size: 11px; font-weight: 700; padding: 2px 7px;
+  border-radius: 999px; border: 1.5px solid #2A2A2A; color: #9CA3AF;
+}
+.dow-pill.on { background: #FFFFFF; color: #000000; border-color: #FFFFFF; }
+
+/* Day of week picker in modal */
+.dow-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+.dow-label { cursor: pointer; }
+.dow-label input { display: none; }
+.dow-toggle {
+  display: inline-block;
+  padding: 7px 12px; border-radius: 999px;
+  border: 1.5px solid #2A2A2A;
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  transition: all 0.15s; user-select: none;
+}
+.dow-label input:checked + .dow-toggle { background: #FFFFFF; color: #000000; border-color: #FFFFFF; }
+
+/* Scheduled items in day detail */
+.day-section-title {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin: 14px 0 8px;
+}
+.day-sched-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: #0A0A0A;
+  border: 1px solid #2A2A2A; border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.day-sched-time { font-size: 13px; font-weight: 700; color: #FFFFFF; min-width: 52px; }
+
+/* Amber dot on calendar for scheduled days */
+.cal-sched-indicator {
+  position: absolute; top: 3px; left: 4px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #F59E0B;
+}
 </style>
 </head>
 <body>
@@ -620,6 +688,7 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     </div>
+    <div id="todayScheduleSection"></div>
     <div id="activityList"></div>
     <button class="add-btn-large" onclick="openAddModal()">＋ Add Custom Activity</button>
   </section>
@@ -655,6 +724,9 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
         <div class="cal-month-label" id="calMonthLabel"></div>
         <button class="btn btn-ghost" onclick="shiftMonth(1)">Next ▶</button>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-primary btn-sm" onclick="openSchedModal()">＋ Add to Schedule</button>
+      </div>
       <div class="cal-grid">
         <div class="cal-day-label">Sun</div>
         <div class="cal-day-label">Mon</div>
@@ -666,6 +738,12 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
       </div>
       <div class="cal-grid" id="calGrid"></div>
       <div id="dayDetail" style="display:none"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🗓️ My Weekly Schedule</div>
+      </div>
+      <div id="schedList"></div>
     </div>
   </section>
 
@@ -723,6 +801,62 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveActivity()">Save Activity</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCHEDULE MODAL ══════════ -->
+<div class="modal-overlay" id="schedModal" onclick="closeSchedModalOnOverlay(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeSchedModal()">✕</button>
+    <div class="modal-title" id="schedModalTitle">Add to Schedule</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Activity Name</label>
+        <input class="form-input" id="schedName" type="text" placeholder="e.g. Evening Workout">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Duration (min)</label>
+        <input class="form-input" id="schedDuration" type="number" value="45" min="1" max="480">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Time</label>
+        <input class="form-input" id="schedTime" type="time" value="17:00">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="schedCategory">
+          <option value="Health">Health &amp; Fitness</option>
+          <option value="Learning">Learning</option>
+          <option value="Mindfulness">Mindfulness</option>
+          <option value="Spiritual">Spiritual</option>
+          <option value="Productivity">Productivity</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Days of the Week</label>
+      <div class="dow-grid">
+        <label class="dow-label"><input type="checkbox" name="dow" value="0"><span class="dow-toggle">Sun</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="1"><span class="dow-toggle">Mon</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="2"><span class="dow-toggle">Tue</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="3"><span class="dow-toggle">Wed</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="4"><span class="dow-toggle">Thu</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="5"><span class="dow-toggle">Fri</span></label>
+        <label class="dow-label"><input type="checkbox" name="dow" value="6"><span class="dow-toggle">Sat</span></label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-grid" id="schedEmojiGrid"></div>
+    </div>
+    <input type="hidden" id="editSchedId">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSchedModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveScheduledAct()">Save</button>
     </div>
   </div>
 </div>
@@ -865,13 +999,16 @@ const EMOJIS = [
 //  STATE
 // ═══════════════════════════════════════
 
-let activities = [];  // [{ id, name, icon, duration, category }]
-let dailyLogs = {};   // { 'YYYY-MM-DD': { [actId]: { done, duration } } }
-let todos = [];       // [{ id, text, priority, done, createdAt }]
+let activities = [];      // [{ id, name, icon, duration, category }]
+let dailyLogs = {};       // { 'YYYY-MM-DD': { [actId]: { done, duration } } }
+let todos = [];           // [{ id, text, priority, done, createdAt }]
+let scheduledActs = [];   // [{ id, name, icon, duration, category, time, days:[0-6] }]
 let calYear, calMonth, selectedDay = null;
 let todoFilter = 'active';
 let selectedEmoji = '💪';
+let schedEmoji = '💪';
 let editingActId = null;
+let editingSchedId = null;
 
 // ═══════════════════════════════════════
 //  STORAGE
@@ -879,18 +1016,20 @@ let editingActId = null;
 
 function load() {
   try {
-    activities = JSON.parse(localStorage.getItem('pdt_acts') || '[]');
-    dailyLogs  = JSON.parse(localStorage.getItem('pdt_logs') || '{}');
-    todos      = JSON.parse(localStorage.getItem('pdt_todos') || '[]');
-  } catch(e) { activities = []; dailyLogs = {}; todos = []; }
+    activities     = JSON.parse(localStorage.getItem('pdt_acts')   || '[]');
+    dailyLogs      = JSON.parse(localStorage.getItem('pdt_logs')   || '{}');
+    todos          = JSON.parse(localStorage.getItem('pdt_todos')  || '[]');
+    scheduledActs  = JSON.parse(localStorage.getItem('pdt_sched')  || '[]');
+  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
 }
 
-function saveActs()  { localStorage.setItem('pdt_acts',  JSON.stringify(activities)); }
-function saveLogs()  { localStorage.setItem('pdt_logs',  JSON.stringify(dailyLogs)); }
-function saveTodos() { localStorage.setItem('pdt_todos', JSON.stringify(todos)); }
+function saveActs()     { localStorage.setItem('pdt_acts',   JSON.stringify(activities)); }
+function saveLogs()     { localStorage.setItem('pdt_logs',   JSON.stringify(dailyLogs)); }
+function saveTodos()    { localStorage.setItem('pdt_todos',  JSON.stringify(todos)); }
+function saveScheduled(){ localStorage.setItem('pdt_sched',  JSON.stringify(scheduledActs)); }
 
 // ═══════════════════════════════════════
 //  UTILS
@@ -947,6 +1086,20 @@ function catStyle(cat) {
   return `background:${c.bg};color:${c.text}`;
 }
 
+function fmtTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function getScheduledForDow(dow) {
+  return scheduledActs.filter(s => s.days && s.days.includes(dow));
+}
+
+const DOW_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
 // ═══════════════════════════════════════
 //  QUOTE
 // ═══════════════════════════════════════
@@ -970,7 +1123,7 @@ function switchTab(tab) {
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   if (tab === 'today') renderToday();
   if (tab === 'todos') renderTodos();
-  if (tab === 'calendar') renderCalendar();
+  if (tab === 'calendar') { renderCalendar(); renderScheduleList(); }
   if (tab === 'activities') renderActivities();
 }
 
@@ -1000,6 +1153,28 @@ function renderToday() {
     document.getElementById('streakNum').textContent = `${streak} days`;
   } else {
     banner.style.display = 'none';
+  }
+
+  // Today's schedule section
+  const todayDow = new Date().getDay();
+  const todaySched = getScheduledForDow(todayDow).sort((a,b) => a.time.localeCompare(b.time));
+  const schedSection = document.getElementById('todayScheduleSection');
+  if (todaySched.length > 0) {
+    schedSection.innerHTML = `
+      <div class="today-sched-card">
+        <div class="card-title">🗓️ Today's Schedule</div>
+        ${todaySched.map(s => `
+          <div class="today-sched-item">
+            <div class="today-sched-time">${fmtTime(s.time)}</div>
+            <span class="today-sched-icon">${s.icon}</span>
+            <div class="today-sched-info">
+              <div class="today-sched-name">${escHtml(s.name)}</div>
+              <div class="today-sched-meta"><span class="cat-badge" style="${catStyle(s.category)}">${s.category}</span> · ${s.duration} min</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    schedSection.innerHTML = '';
   }
 
   const list = document.getElementById('activityList');
@@ -1162,9 +1337,12 @@ function renderCalendar() {
       else cls += ' cal-has-low';
     }
 
+    const dow = new Date(calYear, calMonth, d).getDay();
+    const hasSched = getScheduledForDow(dow).length > 0;
+    const schedIndicator = hasSched && !isSel ? `<div class="cal-sched-indicator"></div>` : '';
     const dots = cnt > 0 ? `<div class="cal-dots">${Array(Math.min(cnt,3)).fill('<div class="cal-dot"></div>').join('')}</div>` : '';
     const badge = cnt > 0 ? `<span class="cal-count">${cnt}</span>` : '';
-    html += `<div class="${cls}" onclick="selectDay('${ds}')">${badge}${d}${dots}</div>`;
+    html += `<div class="${cls}" onclick="selectDay('${ds}')">${schedIndicator}${badge}${d}${dots}</div>`;
   }
   document.getElementById('calGrid').innerHTML = html;
   renderDayDetail();
@@ -1178,29 +1356,38 @@ function selectDay(ds) {
 function renderDayDetail() {
   const el = document.getElementById('dayDetail');
   if (!selectedDay) { el.style.display = 'none'; return; }
+
   const log = getDayLog(selectedDay);
   const completed = Object.entries(log).filter(([,e]) => e.done);
   const mins = getTotalMins(selectedDay);
 
-  if (completed.length === 0) {
-    el.style.display = 'block';
-    el.innerHTML = `<div class="day-detail"><div class="day-detail-title">📅 ${fmtDateLabel(selectedDay)}</div><div class="day-detail-stat">No activities logged for this day.</div></div>`;
-    return;
-  }
+  const [y, mo, d] = selectedDay.split('-').map(Number);
+  const dow = new Date(y, mo-1, d).getDay();
+  const scheduled = getScheduledForDow(dow).sort((a,b) => a.time.localeCompare(b.time));
 
-  const rows = completed.map(([id, entry]) => {
+  const loggedRows = completed.map(([id, entry]) => {
     const act = activities.find(a => a.id === id);
     const icon = act ? act.icon : '📌';
     const name = act ? act.name : 'Unknown Activity';
     return `<div class="day-activity-row"><span class="day-act-icon">${icon}</span><span class="day-act-name">${escHtml(name)}</span><span class="day-act-time">${fmtMins(entry.duration)}</span></div>`;
   }).join('');
 
+  const schedRows = scheduled.map(s => `
+    <div class="day-sched-row">
+      <span class="day-sched-time">${fmtTime(s.time)}</span>
+      <span class="day-act-icon">${s.icon}</span>
+      <span class="day-act-name">${escHtml(s.name)}</span>
+      <span class="day-act-time">${s.duration} min</span>
+    </div>`).join('');
+
   el.style.display = 'block';
   el.innerHTML = `
     <div class="day-detail">
       <div class="day-detail-title">📅 ${fmtDateLabel(selectedDay)}</div>
-      <div class="day-detail-stat">${completed.length} activit${completed.length===1?'y':'ies'} completed · ${fmtMins(mins)} total</div>
-      ${rows}
+      ${scheduled.length > 0 ? `<div class="day-section-title">🗓️ Scheduled</div>${schedRows}` : ''}
+      ${completed.length > 0
+        ? `<div class="day-section-title">✅ Logged</div><div class="day-detail-stat">${completed.length} activit${completed.length===1?'y':'ies'} · ${fmtMins(mins)} total</div>${loggedRows}`
+        : `<div class="day-section-title" style="margin-top:${scheduled.length>0?'14px':'0'}">✅ Logged</div><div class="day-detail-stat">Nothing logged yet.</div>`}
     </div>`;
 }
 
@@ -1261,6 +1448,129 @@ function deleteActivity(id) {
   saveActs();
   renderActivities();
   renderToday();
+}
+
+// ═══════════════════════════════════════
+//  SCHEDULE
+// ═══════════════════════════════════════
+
+function renderScheduleList() {
+  const el = document.getElementById('schedList');
+  if (!el) return;
+  if (scheduledActs.length === 0) {
+    el.innerHTML = `<div class="empty" style="padding:24px"><div class="empty-ico">🗓️</div><div class="empty-title">No scheduled activities</div><div class="empty-sub">Click "Add to Schedule" to create a recurring activity.</div></div>`;
+    return;
+  }
+  const sorted = [...scheduledActs].sort((a,b) => a.time.localeCompare(b.time));
+  el.innerHTML = sorted.map(s => {
+    const pills = DOW_NAMES.map((name, i) =>
+      `<span class="dow-pill ${s.days.includes(i) ? 'on' : ''}">${name}</span>`
+    ).join('');
+    return `
+      <div class="sched-list-item">
+        <span class="sched-list-icon">${s.icon}</span>
+        <div class="sched-list-info">
+          <div class="sched-list-name">${escHtml(s.name)}</div>
+          <div class="sched-list-time">${fmtTime(s.time)}</div>
+          <div class="sched-list-meta">
+            <span class="cat-badge" style="${catStyle(s.category)}">${s.category}</span>
+            · ${s.duration} min
+          </div>
+          <div class="dow-pills">${pills}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-ghost btn-icon" onclick="openEditSchedModal('${s.id}')" title="Edit">✏️</button>
+          <button class="btn btn-danger-ghost btn-icon" onclick="deleteScheduledAct('${s.id}')" title="Delete">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openSchedModal() {
+  editingSchedId = null;
+  document.getElementById('schedModalTitle').textContent = 'Add to Schedule';
+  document.getElementById('schedName').value = '';
+  document.getElementById('schedDuration').value = '45';
+  document.getElementById('schedTime').value = '17:00';
+  document.getElementById('schedCategory').value = 'Health';
+  document.getElementById('editSchedId').value = '';
+  document.querySelectorAll('[name="dow"]').forEach(cb => cb.checked = false);
+  schedEmoji = '💪';
+  renderSchedEmojiGrid();
+  document.getElementById('schedModal').classList.add('open');
+  setTimeout(() => document.getElementById('schedName').focus(), 100);
+}
+
+function openEditSchedModal(id) {
+  const s = scheduledActs.find(s => s.id === id);
+  if (!s) return;
+  editingSchedId = id;
+  document.getElementById('schedModalTitle').textContent = 'Edit Scheduled Activity';
+  document.getElementById('schedName').value = s.name;
+  document.getElementById('schedDuration').value = s.duration;
+  document.getElementById('schedTime').value = s.time;
+  document.getElementById('schedCategory').value = s.category;
+  document.getElementById('editSchedId').value = id;
+  document.querySelectorAll('[name="dow"]').forEach(cb => {
+    cb.checked = s.days.includes(parseInt(cb.value));
+  });
+  schedEmoji = s.icon;
+  renderSchedEmojiGrid();
+  document.getElementById('schedModal').classList.add('open');
+  setTimeout(() => document.getElementById('schedName').focus(), 100);
+}
+
+function closeSchedModal() {
+  document.getElementById('schedModal').classList.remove('open');
+}
+
+function closeSchedModalOnOverlay(e) {
+  if (e.target === document.getElementById('schedModal')) closeSchedModal();
+}
+
+function saveScheduledAct() {
+  const name = document.getElementById('schedName').value.trim();
+  if (!name) { document.getElementById('schedName').focus(); return; }
+  const duration = parseInt(document.getElementById('schedDuration').value) || 45;
+  const time = document.getElementById('schedTime').value || '17:00';
+  const category = document.getElementById('schedCategory').value;
+  const days = Array.from(document.querySelectorAll('[name="dow"]:checked')).map(cb => parseInt(cb.value));
+  if (days.length === 0) { alert('Please select at least one day of the week.'); return; }
+  const id = editingSchedId || genId();
+  const entry = { id, name, icon: schedEmoji, duration, category, time, days };
+  if (editingSchedId) {
+    const idx = scheduledActs.findIndex(s => s.id === editingSchedId);
+    if (idx !== -1) scheduledActs[idx] = entry;
+  } else {
+    scheduledActs.push(entry);
+  }
+  saveScheduled();
+  closeSchedModal();
+  renderScheduleList();
+  renderCalendar();
+  renderToday();
+}
+
+function deleteScheduledAct(id) {
+  if (!confirm('Remove this scheduled activity?')) return;
+  scheduledActs = scheduledActs.filter(s => s.id !== id);
+  saveScheduled();
+  renderScheduleList();
+  renderCalendar();
+  renderToday();
+}
+
+function renderSchedEmojiGrid() {
+  const grid = document.getElementById('schedEmojiGrid');
+  if (!grid) return;
+  grid.innerHTML = EMOJIS.map(e =>
+    `<button type="button" class="emoji-opt ${e===schedEmoji?'sel':''}" onclick="pickSchedEmoji('${e}')">${e}</button>`
+  ).join('');
+}
+
+function pickSchedEmoji(e) {
+  schedEmoji = e;
+  renderSchedEmojiGrid();
 }
 
 // ═══════════════════════════════════════
@@ -1360,7 +1670,7 @@ function init() {
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeAddModal();
+    if (e.key === 'Escape') { closeAddModal(); closeSchedModal(); }
   });
 }
 
