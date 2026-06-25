@@ -313,7 +313,15 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 .todo-item:hover { border-color: #CBD5E1; }
 .todo-item.todo-done { background: var(--bg); opacity: 0.6; }
 .todo-item.todo-done .todo-text { text-decoration: line-through; color: var(--text-muted); }
-.todo-check { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
+.todo-complete-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid #4B5563; background: none;
+  cursor: pointer; color: white; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.todo-complete-btn:hover { border-color: var(--success); background: rgba(16,185,129,0.1); }
+.todo-complete-btn.is-done { background: var(--success); border-color: var(--success); }
 .todo-text { flex: 1; font-size: 14px; font-weight: 500; }
 .todo-delete { opacity: 0; transition: opacity 0.15s; }
 .todo-item:hover .todo-delete { opacity: 1; }
@@ -1560,7 +1568,9 @@ function renderTodos() {
     const p = PRI[t.priority] || PRI.medium;
     return `
     <div class="todo-item ${t.done ? 'todo-done' : ''}">
-      <input type="checkbox" class="todo-check" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
+      <button class="todo-complete-btn ${t.done ? 'is-done' : ''}" onclick="toggleTodo('${t.id}')" title="${t.done ? 'Mark incomplete' : 'Mark complete'}">
+        ${t.done ? '✓' : ''}
+      </button>
       <div class="todo-text">${escHtml(t.text)}</div>
       <span class="pri-badge ${p.cls}" title="Click to change priority" onclick="cyclePriority('${t.id}')">${p.label}</span>
       <button class="btn btn-danger-ghost btn-icon todo-delete" onclick="deleteTodo('${t.id}')" title="Delete">✕</button>
