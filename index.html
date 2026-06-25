@@ -2308,6 +2308,31 @@ function init() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeAddModal(); closeSchedModal(); }
   });
+
+  // Day-change detector — checks every minute and refreshes if midnight has passed
+  let _lastDate = todayStr();
+  setInterval(() => {
+    const current = todayStr();
+    if (current === _lastDate) return;
+    _lastDate = current;
+
+    // Update header date and quote
+    document.getElementById('headerDate').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    initQuote();
+
+    // Reset journal/reflection date pointers to new day
+    journalDate = current;
+    reflectionDate = current;
+
+    // Re-render whichever tab is active
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    if (activeTab === 'today')    renderToday();
+    if (activeTab === 'todos')    renderTodos();
+    if (activeTab === 'calendar') { renderCalendar(); renderScheduleList(); }
+    if (activeTab === 'journal')  renderJournal();
+  }, 60000);
 }
 
 init();
