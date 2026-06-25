@@ -659,6 +659,12 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 .past-chat-quote { font-size: 12px; font-style: italic; color: #9CA3AF; margin-bottom: 6px; }
 .past-chat-meta { font-size: 12px; color: var(--text-muted); }
 
+/* ─── Coach Chat ─── */
+.chat-bubble.coach-ai { align-self: flex-start; }
+.chat-bubble.coach-ai .chat-bubble-label { color: #F59E0B; }
+.chat-bubble.coach-ai .chat-bubble-body { background: #1A1000; border: 1px solid #78350F; color: #FEF3C7; border-radius: 12px 12px 12px 2px; }
+.chat-bubble.coach-ai .chat-bubble-time { text-align: left; }
+
 /* ─── Schedule ─── */
 .today-sched-card { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
 .today-sched-card .card-title { margin-bottom: 12px; }
@@ -897,6 +903,29 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
         <button class="btn btn-primary btn-sm" onclick="saveJournalEntry()">Save Entry</button>
         <span id="journalWordCount" style="font-size:12px;color:var(--text-muted)">0 words</span>
       </div>
+    </div>
+
+    <!-- Daily Coach -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💪 Daily Coach</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="shiftCoachDay(-1)">◀</button>
+          <span id="coachDateLabel" style="font-size:12px;font-weight:600;color:var(--text-muted)"></span>
+          <button class="btn btn-ghost btn-sm" id="coachNextBtn" onclick="shiftCoachDay(1)">▶</button>
+          <button class="btn btn-outline btn-sm" onclick="goToCoachToday()">Today</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Your coach tells it straight — no excuses, no coddling. Talk through your day, your goals, or anything on your mind.</p>
+      <div id="coachChatArea"></div>
+    </div>
+
+    <!-- Past Coach Sessions -->
+    <div class="card" id="pastCoachCard" style="display:none">
+      <div class="card-header">
+        <div class="card-title">📚 Past Coaching Sessions</div>
+      </div>
+      <div id="pastCoachList"></div>
     </div>
 
     <!-- Past Journal Entries -->
@@ -1309,6 +1338,8 @@ let scheduledActs = [];   // [{ id, name, icon, duration, category, time, days:[
 let journalEntries = {};  // { 'YYYY-MM-DD': 'text' }
 let quoteReflections = {}; // kept for backward compat
 let quoteChats = {};       // { 'YYYY-MM-DD': { quoteText, quoteAuthor, messages:[{role,text,time}] } }
+let coachChats = {};       // { 'YYYY-MM-DD': { messages:[{role,text,time}] } }
+let coachChatDate = null;
 let calYear, calMonth, selectedDay = null;
 let journalDate = null;      // currently viewed journal date string
 let reflectionDate = null;   // currently viewed reflection date string
@@ -1333,7 +1364,8 @@ function load() {
     journalEntries    = JSON.parse(localStorage.getItem('pdt_journal')  || '{}');
     quoteReflections  = JSON.parse(localStorage.getItem('pdt_reflect')  || '{}');
     quoteChats        = JSON.parse(localStorage.getItem('pdt_chats')    || '{}');
-  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; quoteChats = {}; }
+    coachChats        = JSON.parse(localStorage.getItem('pdt_coach')    || '{}');
+  } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; quoteChats = {}; coachChats = {}; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
@@ -1346,6 +1378,7 @@ function saveScheduled()   { localStorage.setItem('pdt_sched',   JSON.stringify(
 function saveJournal()     { localStorage.setItem('pdt_journal', JSON.stringify(journalEntries)); }
 function saveReflections() { localStorage.setItem('pdt_reflect', JSON.stringify(quoteReflections)); }
 function saveChats()       { localStorage.setItem('pdt_chats',   JSON.stringify(quoteChats)); }
+function saveCoachChats()  { localStorage.setItem('pdt_coach',   JSON.stringify(coachChats)); }
 
 // ═══════════════════════════════════════
 //  UTILS
@@ -2085,8 +2118,11 @@ function getQuoteOfDay(dateStr) {
 function renderJournal() {
   journalDate = journalDate || todayStr();
   reflectionDate = reflectionDate || todayStr();
+  coachChatDate = coachChatDate || todayStr();
   renderChat();
   renderJournalEntry();
+  renderCoachChat();
+  renderPastCoachChats();
   renderApiStatus();
   renderPastEntries();
   renderPastChats();
@@ -2469,6 +2505,201 @@ function flashSaved(indicatorId) {
 }
 
 // ═══════════════════════════════════════
+//  COACH CHAT
+// ═══════════════════════════════════════
+
+const COACH_SYSTEM_PROMPT = `You are this person's personal performance coach. You know they are capable of significantly more than they have shown so far — this is your honest assessment, not flattery. Your role: call things exactly as they are. When they rationalize, make excuses, or think small — name it plainly and redirect without apology. When they do something right, acknowledge it briefly: it is expected of someone at their level, not exceptional. Ask sharp, direct questions that cut to what is really going on. Never accept "I tried" as an answer — focus on what they learned and what they do next. Keep every response to 2-4 sentences, punchy and direct. You are deeply invested in their growth, which is exactly why you will not let them settle for anything less than their best.`;
+
+function renderCoachChat() {
+  const today = todayStr();
+  const isToday = coachChatDate === today;
+
+  const label = document.getElementById('coachDateLabel');
+  if (label) label.textContent = isToday ? 'Today' : fmtDateLabel(coachChatDate);
+  const nextBtn = document.getElementById('coachNextBtn');
+  if (nextBtn) { nextBtn.disabled = coachChatDate >= today; nextBtn.style.opacity = coachChatDate >= today ? '0.3' : '1'; }
+
+  const area = document.getElementById('coachChatArea');
+  if (!area) return;
+
+  const hasKey = !!localStorage.getItem('pdt_gemini_key');
+  const chat = coachChats[coachChatDate];
+  const msgs = chat ? chat.messages : [];
+
+  if (msgs.length === 0) {
+    if (!hasKey) {
+      area.innerHTML = `<p style="font-size:13px;color:var(--text-muted);padding:8px 0">Add an AI key in the settings below to start a coaching session.</p>`;
+      return;
+    }
+    area.innerHTML = `
+      <div class="chat-start-box">
+        <textarea class="journal-textarea" id="coachStartInput" placeholder="What's on your mind? Talk to your coach..." style="min-height:100px"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary" onclick="startCoachChat()">Start Session →</button>
+        </div>
+      </div>`;
+  } else {
+    const bubbles = msgs.map(m => `
+      <div class="chat-bubble ${m.role === 'ai' ? 'coach-ai' : 'user'}">
+        <div class="chat-bubble-label">${m.role === 'user' ? 'You' : '💪 Coach'}</div>
+        <div class="chat-bubble-body">${escHtml(m.text)}</div>
+        ${m.time ? `<div class="chat-bubble-time">${m.time}</div>` : ''}
+      </div>`).join('');
+
+    area.innerHTML = `
+      <div class="chat-messages" id="coachMessages">${bubbles}</div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="coachInput" placeholder="Reply to your coach..." rows="2"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage()}"></textarea>
+        <button class="btn btn-primary" id="coachSendBtn" onclick="sendCoachMessage()">Send</button>
+      </div>`;
+
+    const cm = document.getElementById('coachMessages');
+    if (cm) cm.scrollTop = cm.scrollHeight;
+  }
+}
+
+async function startCoachChat() {
+  const ta = document.getElementById('coachStartInput');
+  if (!ta || !ta.value.trim()) { alert('Write something first.'); return; }
+  if (!coachChats[coachChatDate]) coachChats[coachChatDate] = { messages: [] };
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  coachChats[coachChatDate].messages.push({ role: 'user', text: ta.value.trim(), time });
+  saveCoachChats();
+  renderCoachChat();
+  renderPastCoachChats();
+  await getCoachReply();
+}
+
+async function sendCoachMessage() {
+  const input = document.getElementById('coachInput');
+  if (!input || !input.value.trim()) return;
+  if (!coachChats[coachChatDate]) coachChats[coachChatDate] = { messages: [] };
+  const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  coachChats[coachChatDate].messages.push({ role: 'user', text: input.value.trim(), time });
+  saveCoachChats();
+  input.value = '';
+  renderCoachChat();
+  await getCoachReply();
+}
+
+async function getCoachReply() {
+  const apiKey = localStorage.getItem('pdt_gemini_key');
+  if (!apiKey) return;
+  const chat = coachChats[coachChatDate];
+  if (!chat) return;
+
+  const cm = document.getElementById('coachMessages');
+  if (cm) {
+    const typing = document.createElement('div');
+    typing.className = 'chat-bubble coach-ai';
+    typing.id = 'coachTyping';
+    typing.innerHTML = `<div class="chat-bubble-label">💪 Coach</div><div class="chat-bubble-body"><div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>`;
+    cm.appendChild(typing);
+    cm.scrollTop = cm.scrollHeight;
+  }
+
+  const sendBtn = document.getElementById('coachSendBtn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    let reply;
+    const keyType = detectKeyType(apiKey);
+
+    if (keyType === 'groq') {
+      const messages = [
+        { role: 'system', content: COACH_SYSTEM_PROMPT },
+        ...chat.messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
+      ];
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 300, temperature: 0.7 })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      reply = data.choices[0].message.content;
+    } else {
+      const contents = chat.messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: COACH_SYSTEM_PROMPT }] },
+            contents,
+            generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+          })
+        }
+      );
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      reply = data.candidates[0].content.parts[0].text;
+    }
+
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chat.messages.push({ role: 'ai', text: reply, time });
+  } catch (err) {
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chat.messages.push({ role: 'ai', text: `Error: ${err.message}`, time });
+  }
+
+  saveCoachChats();
+  renderCoachChat();
+  renderPastCoachChats();
+  if (sendBtn) sendBtn.disabled = false;
+}
+
+function shiftCoachDay(dir) {
+  const [y, m, d] = coachChatDate.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + dir);
+  const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  if (next > todayStr()) return;
+  coachChatDate = next;
+  renderCoachChat();
+}
+
+function goToCoachToday() {
+  coachChatDate = todayStr();
+  renderCoachChat();
+}
+
+function renderPastCoachChats() {
+  const card = document.getElementById('pastCoachCard');
+  const list = document.getElementById('pastCoachList');
+  if (!card || !list) return;
+
+  const entries = Object.entries(coachChats)
+    .filter(([, v]) => v.messages && v.messages.length > 0)
+    .sort(([a], [b]) => b.localeCompare(a));
+
+  if (entries.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  list.innerHTML = entries.map(([ds, v]) => {
+    const firstMsg = v.messages.find(m => m.role === 'user');
+    return `
+    <div class="past-chat-entry" onclick="openPastCoachChat('${ds}')">
+      <div class="past-chat-date">${fmtDateLabel(ds)}</div>
+      ${firstMsg ? `<div class="past-chat-quote">${escHtml(firstMsg.text.slice(0, 100))}${firstMsg.text.length > 100 ? '...' : ''}</div>` : ''}
+      <div class="past-chat-meta">${v.messages.length} message${v.messages.length !== 1 ? 's' : ''} · Click to open</div>
+    </div>`;
+  }).join('');
+}
+
+function openPastCoachChat(ds) {
+  coachChatDate = ds;
+  renderCoachChat();
+  const area = document.getElementById('coachChatArea');
+  if (area) area.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════
 //  BACKUP & RESTORE
 // ═══════════════════════════════════════
 
@@ -2483,6 +2714,7 @@ function exportData() {
     journalEntries,
     quoteReflections,
     quoteChats,
+    coachChats,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2515,6 +2747,7 @@ function handleImportFile(e) {
       if (data.journalEntries)               { journalEntries = data.journalEntries;     saveJournal(); }
       if (data.quoteReflections)             { quoteReflections = data.quoteReflections; saveReflections(); }
       if (data.quoteChats)                   { quoteChats = data.quoteChats;             saveChats(); }
+      if (data.coachChats)                   { coachChats = data.coachChats;             saveCoachChats(); }
       renderToday();
       renderActivities();
       alert('Backup restored successfully!');
@@ -2541,6 +2774,7 @@ function init() {
 
   journalDate = todayStr();
   reflectionDate = todayStr();
+  coachChatDate = todayStr();
   initQuote();
   renderToday();
   renderTodayActivitiesInTodo();
