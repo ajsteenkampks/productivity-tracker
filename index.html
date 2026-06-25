@@ -1522,20 +1522,20 @@ function updateDuration(id, val) {
 // ═══════════════════════════════════════
 
 function renderTodayActivitiesInTodo() {
-  const card = document.getElementById('todayActivitiesCard');
   const list = document.getElementById('todoActList');
-  if (!card || !list) return;
+  const progress = document.getElementById('todoActProgress');
+  if (!list) return;
 
   if (activities.length === 0) {
-    card.style.display = 'none';
+    list.innerHTML = `<div class="empty" style="padding:20px"><div class="empty-ico" style="font-size:32px">📋</div><div class="empty-title" style="font-size:14px">No activities yet</div><div class="empty-sub">Go to the <b>Activities</b> tab to add some.</div></div>`;
+    if (progress) progress.textContent = '';
     return;
   }
-  card.style.display = 'block';
 
   const ds = todayStr();
   const log = getDayLog(ds);
   const done = Object.values(log).filter(e => e.done).length;
-  document.getElementById('todoActProgress').textContent = `${done} / ${activities.length} done`;
+  if (progress) progress.textContent = `${done} / ${activities.length} done`;
 
   list.innerHTML = activities.map(act => {
     const entry = log[act.id] || { done: false, duration: act.duration };
@@ -2351,6 +2351,7 @@ function init() {
   reflectionDate = todayStr();
   initQuote();
   renderToday();
+  renderTodayActivitiesInTodo();
   renderEmojiGrid();
 
   // Keyboard shortcuts
