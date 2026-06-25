@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Productivity Tracker</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --primary: #4F46E5;
+  --primary-light: #EEF2FF;
+  --primary-dark: #3730A3;
+  --success: #10B981;
+  --success-light: #ECFDF5;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --danger-light: #FEF2F2;
+  --bg: #F1F5F9;
+  --card: #FFFFFF;
+  --text: #1E293B;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ─── Header ─── */
+.header {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  color: white;
+  padding: 28px 20px 24px;
+  text-align: center;
+}
+.header-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+.header-date { font-size: 14px; opacity: 0.8; margin-bottom: 18px; }
+.quote-card {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  max-width: 620px;
+  margin: 0 auto;
+  backdrop-filter: blur(10px);
+}
+.quote-text { font-size: 15px; font-style: italic; line-height: 1.7; margin-bottom: 8px; }
+.quote-author { font-size: 13px; opacity: 0.75; font-weight: 600; }
+
+/* ─── Tabs ─── */
+.tab-bar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: var(--shadow);
+}
+.tab-bar-inner {
+  display: flex;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 14px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.tab-btn:hover:not(.active) { color: var(--text); background: #F8FAFC; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+
+/* ─── Main / Panels ─── */
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+.panel { display: none; }
+.panel.active { display: block; animation: fadeUp 0.2s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ─── Card ─── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #059669; }
+.btn-outline {
+  background: none;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.btn-outline:hover { background: var(--primary-light); }
+.btn-ghost { background: none; color: var(--text-muted); padding: 6px 10px; }
+.btn-ghost:hover { background: var(--bg); color: var(--text); }
+.btn-danger-ghost { background: none; color: var(--danger); padding: 6px 10px; }
+.btn-danger-ghost:hover { background: var(--danger-light); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon { padding: 6px; border-radius: 6px; font-size: 16px; }
+
+.add-btn-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  margin-top: 12px;
+}
+.add-btn-large:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+/* ─── Stats Grid ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-box {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-box.streak .stat-num { color: #D97706; }
+
+/* ─── Progress ─── */
+.progress-card { background: var(--card); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.progress-label { font-size: 14px; font-weight: 600; }
+.progress-pct { font-size: 14px; font-weight: 700; color: var(--primary); }
+.progress-bar { height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #10B981, #34D399); border-radius: 999px; transition: width 0.5s ease; }
+
+/* ─── Activity Items ─── */
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  background: var(--card);
+  transition: all 0.2s;
+  animation: fadeUp 0.2s ease;
+}
+.activity-item:hover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+.activity-item.done { background: var(--success-light); border-color: #6EE7B7; }
+.activity-item.done .act-name { text-decoration: line-through; color: var(--text-muted); }
+
+.act-check {
+  width: 20px; height: 20px;
+  accent-color: var(--success);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.act-icon { font-size: 24px; flex-shrink: 0; }
+.act-body { flex: 1; min-width: 0; }
+.act-name { font-weight: 600; font-size: 14px; }
+.act-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+
+.cat-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.dur-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.dur-input {
+  width: 62px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--bg);
+  color: var(--text);
+}
+.dur-input:focus { outline: none; border-color: var(--primary); }
+.dur-unit { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+.act-delete { opacity: 0; transition: opacity 0.15s; margin-left: 4px; }
+.activity-item:hover .act-delete { opacity: 1; }
+
+/* ─── To-Do ─── */
+.todo-form { display: flex; gap: 8px; margin-bottom: 16px; }
+.todo-form-inner { flex: 1; display: flex; gap: 8px; }
+.todo-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--bg);
+}
+.todo-input:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.priority-select {
+  padding: 10px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg);
+  cursor: pointer;
+}
+.priority-select:focus { outline: none; border-color: var(--primary); }
+
+.filter-bar { display: flex; gap: 6px; margin-bottom: 14px; }
+.filter-btn {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.filter-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  background: var(--card);
+  transition: all 0.2s;
+  animation: fadeUp 0.2s ease;
+}
+.todo-item:hover { border-color: #CBD5E1; }
+.todo-item.todo-done { background: var(--bg); opacity: 0.6; }
+.todo-item.todo-done .todo-text { text-decoration: line-through; color: var(--text-muted); }
+.todo-check { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
+.todo-text { flex: 1; font-size: 14px; font-weight: 500; }
+.todo-delete { opacity: 0; transition: opacity 0.15s; }
+.todo-item:hover .todo-delete { opacity: 1; }
+
+.pri-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.pri-badge:hover { opacity: 0.75; }
+.pri-high { background: #FEE2E2; color: #DC2626; }
+.pri-medium { background: #FEF3C7; color: #D97706; }
+.pri-low { background: #DCFCE7; color: #16A34A; }
+
+.completed-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 12px 0 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+/* ─── Calendar ─── */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.cal-month-label { font-size: 20px; font-weight: 700; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 6px 0;
+}
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+  position: relative;
+  min-height: 42px;
+  background: var(--card);
+}
+.cal-day:hover:not(.cal-empty) { border-color: var(--primary); transform: scale(1.05); z-index: 1; }
+.cal-day.cal-empty { background: none; border-color: transparent; cursor: default; }
+.cal-day.cal-today { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+.cal-day.cal-selected { background: var(--primary); color: white; border-color: var(--primary-dark); }
+.cal-day.cal-has-low { background: #ECFDF5; border-color: #A7F3D0; }
+.cal-day.cal-has-mid { background: #D1FAE5; border-color: #6EE7B7; }
+.cal-day.cal-has-full { background: #059669; color: white; border-color: #047857; }
+.cal-day.cal-selected.cal-has-full { background: var(--primary); border-color: var(--primary-dark); }
+.cal-dots { position: absolute; bottom: 4px; display: flex; gap: 2px; }
+.cal-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--success); }
+.cal-day.cal-selected .cal-dot, .cal-day.cal-has-full .cal-dot { background: rgba(255,255,255,0.8); }
+.cal-count {
+  font-size: 10px;
+  font-weight: 700;
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  opacity: 0.7;
+}
+
+.day-detail { background: var(--bg); border-radius: var(--radius-sm); padding: 18px; margin-top: 18px; }
+.day-detail-title { font-weight: 700; font-size: 16px; margin-bottom: 14px; }
+.day-detail-stat { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+.day-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.day-act-icon { font-size: 20px; }
+.day-act-name { flex: 1; font-weight: 500; }
+.day-act-time { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+/* ─── Activities Tab ─── */
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 20px 0 10px;
+}
+.my-act-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+.my-act-item:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.my-act-icon { font-size: 22px; }
+.my-act-info { flex: 1; }
+.my-act-name { font-weight: 600; font-size: 14px; }
+.my-act-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.my-act-actions { display: flex; gap: 4px; }
+
+.sug-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.sug-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  transition: all 0.2s;
+}
+.sug-card:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.sug-card.sug-added { background: var(--success-light); border-color: #A7F3D0; }
+.sug-icon { font-size: 24px; flex-shrink: 0; }
+.sug-info { flex: 1; min-width: 0; }
+.sug-name { font-weight: 600; font-size: 14px; }
+.sug-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  animation: fadeUp 0.2s ease;
+}
+.modal-title { font-size: 20px; font-weight: 800; margin-bottom: 22px; }
+.modal-close { float: right; cursor: pointer; font-size: 20px; color: var(--text-muted); background: none; border: none; }
+.modal-close:hover { color: var(--text); }
+
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.form-input, .form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+}
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+}
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.emoji-opt {
+  font-size: 20px;
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+  text-align: center;
+  transition: all 0.1s;
+  line-height: 1;
+}
+.emoji-opt:hover { background: var(--primary-light); }
+.emoji-opt.sel { background: var(--primary-light); border-color: var(--primary); }
+
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 20px; }
+
+/* ─── Empty States ─── */
+.empty { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-ico { font-size: 52px; margin-bottom: 14px; }
+.empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.empty-sub { font-size: 14px; }
+
+/* ─── Streak Banner ─── */
+.streak-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  border: 1px solid #FCD34D;
+}
+.streak-fire { font-size: 36px; }
+.streak-text { flex: 1; }
+.streak-num { font-size: 22px; font-weight: 800; color: #92400E; line-height: 1; }
+.streak-lbl { font-size: 12px; color: #78350F; font-weight: 500; margin-top: 2px; }
+
+/* ─── Misc ─── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+@media (max-width: 520px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .tab-btn span { display: none; }
+  .sug-grid { grid-template-columns: 1fr; }
+  .emoji-grid { grid-template-columns: repeat(8, 1fr); }
+}
+@media (max-width: 380px) {
+  .tab-btn { font-size: 11px; padding: 12px 4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="header">
+  <div class="header-title">✨ Daily Tracker</div>
+  <div class="header-date" id="headerDate"></div>
+  <div class="quote-card">
+    <div class="quote-text" id="quoteText">Loading quote…</div>
+    <div class="quote-author" id="quoteAuthor"></div>
+  </div>
+</header>
+
+<!-- ══════════ TAB BAR ══════════ -->
+<div class="tab-bar">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" data-tab="today" onclick="switchTab('today')">📋 <span>Today</span></button>
+    <button class="tab-btn" data-tab="todos" onclick="switchTab('todos')">✅ <span>To-Do</span></button>
+    <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">📅 <span>Calendar</span></button>
+    <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">⚙️ <span>Activities</span></button>
+  </div>
+</div>
+
+<!-- ══════════ MAIN ══════════ -->
+<main>
+
+  <!-- ── TODAY PANEL ── -->
+  <section class="panel active" id="panel-today">
+    <div id="streakBanner" style="display:none" class="streak-banner">
+      <div class="streak-fire">🔥</div>
+      <div class="streak-text">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-lbl">Day Streak — keep it going!</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num" id="statDone">0</div>
+        <div class="stat-label">Done</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Activities</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statTime">0m</div>
+        <div class="stat-label">Time Logged</div>
+      </div>
+      <div class="stat-box streak">
+        <div class="stat-num" id="statStreak">🔥 0</div>
+        <div class="stat-label">Streak</div>
+      </div>
+    </div>
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="progress-label">Today's Progress</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div id="activityList"></div>
+    <button class="add-btn-large" onclick="openAddModal()">＋ Add Custom Activity</button>
+  </section>
+
+  <!-- ── TO-DO PANEL ── -->
+  <section class="panel" id="panel-todos">
+    <div class="card">
+      <div class="todo-form">
+        <div class="todo-form-inner">
+          <input class="todo-input" id="todoInput" type="text" placeholder="Add a new task…" onkeydown="if(event.key==='Enter')addTodo()">
+          <select class="priority-select" id="todoPriority">
+            <option value="high">🔴 High</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="addTodo()">Add</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="active" onclick="setTodoFilter('active')">Active</button>
+        <button class="filter-btn" data-filter="all" onclick="setTodoFilter('all')">All</button>
+        <button class="filter-btn" data-filter="done" onclick="setTodoFilter('done')">Completed</button>
+      </div>
+      <div id="todoList"></div>
+    </div>
+  </section>
+
+  <!-- ── CALENDAR PANEL ── -->
+  <section class="panel" id="panel-calendar">
+    <div class="card">
+      <div class="cal-nav">
+        <button class="btn btn-ghost" onclick="shiftMonth(-1)">◀ Prev</button>
+        <div class="cal-month-label" id="calMonthLabel"></div>
+        <button class="btn btn-ghost" onclick="shiftMonth(1)">Next ▶</button>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-day-label">Sun</div>
+        <div class="cal-day-label">Mon</div>
+        <div class="cal-day-label">Tue</div>
+        <div class="cal-day-label">Wed</div>
+        <div class="cal-day-label">Thu</div>
+        <div class="cal-day-label">Fri</div>
+        <div class="cal-day-label">Sat</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="dayDetail" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ── ACTIVITIES PANEL ── -->
+  <section class="panel" id="panel-activities">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 My Tracked Activities</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Custom</button>
+      </div>
+      <div id="myActivitiesList"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💡 Suggested Activities</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Click any suggestion to add it to your daily tracker.</p>
+      <div class="sug-grid" id="sugGrid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════ ADD ACTIVITY MODAL ══════════ -->
+<div class="modal-overlay" id="addModal" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAddModal()">✕</button>
+    <div class="modal-title" id="modalTitle">Add Activity</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Activity Name</label>
+        <input class="form-input" id="actName" type="text" placeholder="e.g. Morning Run">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Default (min)</label>
+        <input class="form-input" id="actDuration" type="number" value="30" min="1" max="480">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="actCategory">
+        <option value="Health">Health &amp; Fitness</option>
+        <option value="Learning">Learning</option>
+        <option value="Mindfulness">Mindfulness</option>
+        <option value="Spiritual">Spiritual</option>
+        <option value="Productivity">Productivity</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+    <input type="hidden" id="editActId">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveActivity()">Save Activity</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+
+const QUOTES = [
+  { text: "The secret of getting ahead is getting started.", author: "— Mark Twain" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "— Confucius" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "— Winston Churchill" },
+  { text: "The only way to do great work is to love what you do.", author: "— Steve Jobs" },
+  { text: "In the middle of every difficulty lies opportunity.", author: "— Albert Einstein" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "— Sam Levenson" },
+  { text: "Believe you can and you're halfway there.", author: "— Theodore Roosevelt" },
+  { text: "Your time is limited, don't waste it living someone else's life.", author: "— Steve Jobs" },
+  { text: "The future depends on what you do today.", author: "— Mahatma Gandhi" },
+  { text: "I can do all things through Christ who strengthens me.", author: "— Philippians 4:13" },
+  { text: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.", author: "— Joshua 1:9" },
+  { text: "Trust in the Lord with all your heart and lean not on your own understanding.", author: "— Proverbs 3:5" },
+  { text: "Discipline is the bridge between goals and accomplishment.", author: "— Jim Rohn" },
+  { text: "Small steps every day lead to big results over time.", author: "— Unknown" },
+  { text: "You don't have to be great to start, but you have to start to be great.", author: "— Zig Ziglar" },
+  { text: "Energy and persistence conquer all things.", author: "— Benjamin Franklin" },
+  { text: "What you get by achieving your goals is not as important as what you become.", author: "— Henry David Thoreau" },
+  { text: "The secret to success is to know something nobody else knows.", author: "— Aristotle Onassis" },
+  { text: "With God all things are possible.", author: "— Matthew 19:26" },
+  { text: "Act as if what you do makes a difference. It does.", author: "— William James" },
+  { text: "Success usually comes to those who are too busy to be looking for it.", author: "— Henry David Thoreau" },
+  { text: "Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.", author: "— Roy T. Bennett" },
+  { text: "If you want to lift yourself up, lift up someone else.", author: "— Booker T. Washington" },
+  { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "— Chinese Proverb" },
+  { text: "It always seems impossible until it's done.", author: "— Nelson Mandela" },
+  { text: "A person who never made a mistake never tried anything new.", author: "— Albert Einstein" },
+  { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "— Franklin D. Roosevelt" },
+  { text: "You must be the change you wish to see in the world.", author: "— Mahatma Gandhi" },
+  { text: "Be yourself; everyone else is already taken.", author: "— Oscar Wilde" },
+  { text: "Two roads diverged in a wood, and I — I took the one less traveled by.", author: "— Robert Frost" },
+  { text: "In three words I can sum up everything I've learned about life: it goes on.", author: "— Robert Frost" },
+  { text: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", author: "— Ralph Waldo Emerson" },
+  { text: "Life isn't about finding yourself. Life is about creating yourself.", author: "— George Bernard Shaw" },
+  { text: "The purpose of our lives is to be happy.", author: "— Dalai Lama" },
+  { text: "Many of life's failures are people who did not realize how close they were to success when they gave up.", author: "— Thomas Edison" },
+  { text: "When you reach the end of your rope, tie a knot in it and hang on.", author: "— Franklin D. Roosevelt" },
+  { text: "Champions keep playing until they get it right.", author: "— Billie Jean King" },
+  { text: "Life is what happens when you're busy making other plans.", author: "— John Lennon" },
+  { text: "Strive not to be a success, but rather to be of value.", author: "— Albert Einstein" },
+  { text: "You miss 100% of the shots you don't take.", author: "— Wayne Gretzky" },
+  { text: "Whether you think you can or you think you can't, you're right.", author: "— Henry Ford" },
+  { text: "I have not failed. I've just found 10,000 ways that won't work.", author: "— Thomas Edison" },
+  { text: "The mind is everything. What you think you become.", author: "— Buddha" },
+  { text: "Excellence is not a skill. It is an attitude.", author: "— Ralph Marston" },
+  { text: "Well done is better than well said.", author: "— Benjamin Franklin" },
+  { text: "The road to success and the road to failure are almost exactly the same.", author: "— Colin R. Davis" },
+  { text: "We become what we repeatedly do.", author: "— Aristotle" },
+  { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "— C.S. Lewis" },
+  { text: "Talent wins games, but teamwork and intelligence win championships.", author: "— Michael Jordan" },
+  { text: "You are never too old to set another goal or to dream a new dream.", author: "— C.S. Lewis" },
+  { text: "If you look at what you have in life, you'll always have more.", author: "— Oprah Winfrey" },
+  { text: "If you want to achieve greatness, stop asking for permission.", author: "— Anonymous" },
+  { text: "Things work out best for those who make the best of how things work out.", author: "— John Wooden" },
+  { text: "To live a creative life, we must lose our fear of being wrong.", author: "— Joseph Chilton Pearce" },
+  { text: "If you are not willing to risk the usual, you will have to settle for the ordinary.", author: "— Jim Rohn" },
+  { text: "Trust yourself that you can do it and get it.", author: "— Baz Luhrmann" },
+  { text: "Successful entrepreneurs are givers, not takers of positive energy.", author: "— Anonymous" },
+  { text: "Whenever you see a successful person, you only see the public glories, never the private sacrifices.", author: "— Vaibhav Shah" },
+  { text: "Opportunities don't happen. You create them.", author: "— Chris Grosser" },
+  { text: "Try not to become a person of success, but rather try to become a person of value.", author: "— Albert Einstein" },
+  { text: "Great minds discuss ideas; average minds discuss events; small minds discuss people.", author: "— Eleanor Roosevelt" },
+  { text: "I have learned over the years that when one's mind is made up, this diminishes fear.", author: "— Rosa Parks" },
+  { text: "I alone cannot change the world, but I can cast a stone across the water to create many ripples.", author: "— Mother Teresa" },
+  { text: "Nothing is impossible, the word itself says 'I'm possible'!", author: "— Audrey Hepburn" },
+  { text: "The question isn't who's going to let me; it's who's going to stop me.", author: "— Ayn Rand" },
+  { text: "One day the people that don't even believe in you will tell others how they met you.", author: "— Johnny Depp" },
+  { text: "If you're offered a seat on a rocket ship, don't ask what seat! Just get on.", author: "— Sheryl Sandberg" },
+  { text: "Authenticity is a collection of choices that we have to make every day.", author: "— Brené Brown" },
+  { text: "The most common way people give up their power is by thinking they don't have any.", author: "— Alice Walker" },
+  { text: "The most difficult thing is the decision to act, the rest is merely tenacity.", author: "— Amelia Earhart" },
+  { text: "How wonderful it is that nobody need wait a single moment before starting to improve the world.", author: "— Anne Frank" },
+  { text: "Do not go where the path may lead, go instead where there is no path and leave a trail.", author: "— Ralph Waldo Emerson" },
+  { text: "I would rather die of passion than of boredom.", author: "— Vincent van Gogh" },
+  { text: "If life were predictable it would cease to be life, and be without flavor.", author: "— Eleanor Roosevelt" },
+  { text: "If you have the guts to keep making mistakes, your wisdom and intelligence leap forward.", author: "— Ralph Ellison" },
+  { text: "You gain strength, courage, and confidence by every experience in which you really stop to look fear in the face.", author: "— Eleanor Roosevelt" },
+  { text: "Do one thing every day that scares you.", author: "— Eleanor Roosevelt" },
+  { text: "Be the change that you wish to see in the world.", author: "— Mahatma Gandhi" },
+  { text: "If you want to live a happy life, tie it to a goal, not to people or things.", author: "— Albert Einstein" },
+  { text: "Never let the fear of striking out keep you from playing the game.", author: "— Babe Ruth" },
+  { text: "Money and success don't change people; they merely amplify what is already there.", author: "— Will Smith" },
+  { text: "Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.", author: "— Steve Jobs" },
+  { text: "Develop an attitude of gratitude, and give thanks for everything that happens to you.", author: "— Brian Tracy" },
+  { text: "You can't use up creativity. The more you use, the more you have.", author: "— Maya Angelou" },
+  { text: "Dream big and dare to fail.", author: "— Norman Vaughan" },
+  { text: "You can never cross the ocean until you have the courage to lose sight of the shore.", author: "— Christopher Columbus" },
+  { text: "All our dreams can come true, if we have the courage to pursue them.", author: "— Walt Disney" },
+  { text: "Good, better, best. Never let it rest. Until your good is better and your better is best.", author: "— St. Jerome" },
+];
+
+const SUGGESTIONS = [
+  { id: 'sug-workout', name: 'Morning Workout', icon: '💪', duration: 45, category: 'Health' },
+  { id: 'sug-run', name: 'Evening Run', icon: '🏃', duration: 30, category: 'Health' },
+  { id: 'sug-read', name: 'Reading', icon: '📚', duration: 30, category: 'Learning' },
+  { id: 'sug-lang', name: 'Language Learning', icon: '🗣️', duration: 20, category: 'Learning' },
+  { id: 'sug-meditate', name: 'Meditation', icon: '🧘', duration: 15, category: 'Mindfulness' },
+  { id: 'sug-journal', name: 'Journaling', icon: '✍️', duration: 15, category: 'Mindfulness' },
+  { id: 'sug-shower', name: 'Cold Shower', icon: '🚿', duration: 5, category: 'Health' },
+  { id: 'sug-prayer', name: 'Prayer / Devotionals', icon: '🙏', duration: 20, category: 'Spiritual' },
+  { id: 'sug-code', name: 'Coding Practice', icon: '💻', duration: 60, category: 'Learning' },
+  { id: 'sug-meal', name: 'Healthy Meal Prep', icon: '🥗', duration: 30, category: 'Health' },
+  { id: 'sug-walk', name: 'Walking / Hiking', icon: '🚶', duration: 40, category: 'Health' },
+  { id: 'sug-deep', name: 'Deep Work Session', icon: '🎯', duration: 90, category: 'Productivity' },
+  { id: 'sug-yoga', name: 'Stretch / Yoga', icon: '🤸', duration: 20, category: 'Health' },
+  { id: 'sug-gratitude', name: 'Gratitude Practice', icon: '🌟', duration: 10, category: 'Mindfulness' },
+  { id: 'sug-skill', name: 'Learn a New Skill', icon: '🎓', duration: 45, category: 'Learning' },
+  { id: 'sug-swim', name: 'Swimming', icon: '🏊', duration: 40, category: 'Health' },
+  { id: 'sug-music', name: 'Practice Music', icon: '🎵', duration: 30, category: 'Learning' },
+  { id: 'sug-detox', name: 'Phone-Free Time', icon: '📵', duration: 60, category: 'Mindfulness' },
+];
+
+const CAT_COLORS = {
+  'Health':       { bg: '#ECFDF5', text: '#059669' },
+  'Learning':     { bg: '#EFF6FF', text: '#2563EB' },
+  'Mindfulness':  { bg: '#F5F3FF', text: '#7C3AED' },
+  'Spiritual':    { bg: '#FFFBEB', text: '#D97706' },
+  'Productivity': { bg: '#FFF7ED', text: '#EA580C' },
+  'Other':        { bg: '#F1F5F9', text: '#475569' },
+};
+
+const EMOJIS = [
+  '💪','🏃','🚴','🤸','🧘','🏋️','🚶','🏊','⚽','🎾',
+  '📚','💻','🎓','✍️','🗣️','🎨','🎵','📝','🔬','🧪',
+  '🙏','🌟','❤️','🧠','😊','🌈','☀️','🌙','⭐','💫',
+  '🥗','🍎','💊','🚿','😴','🏠','🎯','📵','🔥','💡',
+  '🌱','🌿','🏆','⚡','🎭','🧩','🎸','🏄','🧗','🤾',
+];
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+
+let activities = [];  // [{ id, name, icon, duration, category }]
+let dailyLogs = {};   // { 'YYYY-MM-DD': { [actId]: { done, duration } } }
+let todos = [];       // [{ id, text, priority, done, createdAt }]
+let calYear, calMonth, selectedDay = null;
+let todoFilter = 'active';
+let selectedEmoji = '💪';
+let editingActId = null;
+
+// ═══════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════
+
+function load() {
+  try {
+    activities = JSON.parse(localStorage.getItem('pdt_acts') || '[]');
+    dailyLogs  = JSON.parse(localStorage.getItem('pdt_logs') || '{}');
+    todos      = JSON.parse(localStorage.getItem('pdt_todos') || '[]');
+  } catch(e) { activities = []; dailyLogs = {}; todos = []; }
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+}
+
+function saveActs()  { localStorage.setItem('pdt_acts',  JSON.stringify(activities)); }
+function saveLogs()  { localStorage.setItem('pdt_logs',  JSON.stringify(dailyLogs)); }
+function saveTodos() { localStorage.setItem('pdt_todos', JSON.stringify(todos)); }
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtMins(m) {
+  m = parseInt(m) || 0;
+  if (m <= 0) return '0m';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m/60), r = m%60;
+  return r ? `${h}h ${r}m` : `${h}h`;
+}
+
+function fmtDateLabel(dateStr) {
+  const [y,mo,d] = dateStr.split('-').map(Number);
+  return new Date(y, mo-1, d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+function getDayLog(ds) { return dailyLogs[ds] || {}; }
+
+function getCompletedCount(ds) {
+  return Object.values(getDayLog(ds)).filter(e => e.done).length;
+}
+
+function getTotalMins(ds) {
+  return Object.values(getDayLog(ds)).filter(e => e.done).reduce((s,e) => s + (parseInt(e.duration)||0), 0);
+}
+
+function calculateStreak() {
+  let streak = 0;
+  const today = new Date();
+  let d = new Date(today);
+  while (true) {
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (getCompletedCount(ds) > 0) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function catStyle(cat) {
+  const c = CAT_COLORS[cat] || CAT_COLORS['Other'];
+  return `background:${c.bg};color:${c.text}`;
+}
+
+// ═══════════════════════════════════════
+//  QUOTE
+// ═══════════════════════════════════════
+
+function initQuote() {
+  const d = new Date();
+  const doy = Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000);
+  const q = QUOTES[doy % QUOTES.length];
+  document.getElementById('quoteText').textContent = `"${q.text}"`;
+  document.getElementById('quoteAuthor').textContent = q.author;
+}
+
+// ═══════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════
+
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'today') renderToday();
+  if (tab === 'todos') renderTodos();
+  if (tab === 'calendar') renderCalendar();
+  if (tab === 'activities') renderActivities();
+}
+
+// ═══════════════════════════════════════
+//  TODAY
+// ═══════════════════════════════════════
+
+function renderToday() {
+  const ds = todayStr();
+  const log = getDayLog(ds);
+  const done = Object.values(log).filter(e => e.done).length;
+  const total = activities.length;
+  const mins = getTotalMins(ds);
+  const streak = calculateStreak();
+  const pct = total ? Math.round((done/total)*100) : 0;
+
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statTime').textContent = fmtMins(mins);
+  document.getElementById('statStreak').textContent = `🔥 ${streak}`;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+
+  const banner = document.getElementById('streakBanner');
+  if (streak >= 2) {
+    banner.style.display = 'flex';
+    document.getElementById('streakNum').textContent = `${streak} days`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const list = document.getElementById('activityList');
+  if (activities.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No activities yet</div><div class="empty-sub">Head to the <b>Activities</b> tab to add habits you want to track each day.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = activities.map(act => {
+    const entry = log[act.id] || { done: false, duration: act.duration };
+    const isDone = !!entry.done;
+    return `
+    <div class="activity-item ${isDone ? 'done' : ''}" id="ai-${act.id}">
+      <input type="checkbox" class="act-check" ${isDone ? 'checked' : ''} onchange="toggleActivity('${act.id}')">
+      <span class="act-icon">${act.icon}</span>
+      <div class="act-body">
+        <div class="act-name">${escHtml(act.name)}</div>
+        <div class="act-meta">
+          <span class="cat-badge" style="${catStyle(act.category)}">${act.category}</span>
+        </div>
+      </div>
+      <div class="dur-wrap">
+        <input type="number" class="dur-input" value="${entry.duration || act.duration}"
+          min="1" max="999" title="Minutes"
+          onchange="updateDuration('${act.id}', this.value)">
+        <span class="dur-unit">min</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleActivity(id) {
+  const ds = todayStr();
+  if (!dailyLogs[ds]) dailyLogs[ds] = {};
+  const act = activities.find(a => a.id === id);
+  const cur = dailyLogs[ds][id] || { done: false, duration: act ? act.duration : 30 };
+  dailyLogs[ds][id] = { done: !cur.done, duration: cur.duration };
+  saveLogs();
+  renderToday();
+}
+
+function updateDuration(id, val) {
+  const ds = todayStr();
+  if (!dailyLogs[ds]) dailyLogs[ds] = {};
+  const act = activities.find(a => a.id === id);
+  const cur = dailyLogs[ds][id] || { done: false, duration: act ? act.duration : 30 };
+  dailyLogs[ds][id] = { ...cur, duration: parseInt(val) || 1 };
+  saveLogs();
+  // update stats only (no full re-render to avoid losing focus)
+  const ds2 = todayStr();
+  const log = getDayLog(ds2);
+  const mins = getTotalMins(ds2);
+  document.getElementById('statTime').textContent = fmtMins(mins);
+}
+
+// ═══════════════════════════════════════
+//  TO-DO
+// ═══════════════════════════════════════
+
+function addTodo() {
+  const txt = document.getElementById('todoInput').value.trim();
+  if (!txt) return;
+  const pri = document.getElementById('todoPriority').value;
+  todos.unshift({ id: genId(), text: txt, priority: pri, done: false, createdAt: todayStr() });
+  saveTodos();
+  document.getElementById('todoInput').value = '';
+  renderTodos();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(t => t.id === id);
+  if (t) { t.done = !t.done; saveTodos(); renderTodos(); }
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  saveTodos();
+  renderTodos();
+}
+
+function cyclePriority(id) {
+  const t = todos.find(t => t.id === id);
+  if (!t) return;
+  const cycle = ['high','medium','low'];
+  t.priority = cycle[(cycle.indexOf(t.priority) + 1) % 3];
+  saveTodos();
+  renderTodos();
+}
+
+function setTodoFilter(f) {
+  todoFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === f);
+  });
+  renderTodos();
+}
+
+function renderTodos() {
+  const PRI = { high: { label: 'High', cls: 'pri-high' }, medium: { label: 'Med', cls: 'pri-medium' }, low: { label: 'Low', cls: 'pri-low' } };
+  let visible = todos;
+  if (todoFilter === 'active') visible = todos.filter(t => !t.done);
+  if (todoFilter === 'done') visible = todos.filter(t => t.done);
+
+  if (visible.length === 0) {
+    const msgs = { active: ['🎉 All done!', 'Nothing left to do — great work!'], all: ['✅ No tasks yet', 'Add your first task above.'], done: ['No completed tasks yet', 'Complete a task to see it here.'] };
+    const [title, sub] = msgs[todoFilter];
+    document.getElementById('todoList').innerHTML = `<div class="empty"><div class="empty-ico">${todoFilter==='done'?'✅':'📝'}</div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;
+    return;
+  }
+
+  document.getElementById('todoList').innerHTML = visible.map(t => {
+    const p = PRI[t.priority] || PRI.medium;
+    return `
+    <div class="todo-item ${t.done ? 'todo-done' : ''}">
+      <input type="checkbox" class="todo-check" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
+      <div class="todo-text">${escHtml(t.text)}</div>
+      <span class="pri-badge ${p.cls}" title="Click to change priority" onclick="cyclePriority('${t.id}')">${p.label}</span>
+      <button class="btn btn-danger-ghost btn-icon todo-delete" onclick="deleteTodo('${t.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  CALENDAR
+// ═══════════════════════════════════════
+
+function shiftMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  selectedDay = null;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const todayS = todayStr();
+
+  let html = '';
+  for (let i = 0; i < firstDow; i++) html += `<div class="cal-day cal-empty"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cnt = getCompletedCount(ds);
+    const total = activities.length;
+    const isToday = ds === todayS;
+    const isSel = ds === selectedDay;
+
+    let cls = 'cal-day';
+    if (isToday) cls += ' cal-today';
+    if (isSel) cls += ' cal-selected';
+    if (cnt > 0 && !isSel) {
+      const pct = total ? cnt/total : 0;
+      if (pct >= 1) cls += ' cal-has-full';
+      else if (pct >= 0.5) cls += ' cal-has-mid';
+      else cls += ' cal-has-low';
+    }
+
+    const dots = cnt > 0 ? `<div class="cal-dots">${Array(Math.min(cnt,3)).fill('<div class="cal-dot"></div>').join('')}</div>` : '';
+    const badge = cnt > 0 ? `<span class="cal-count">${cnt}</span>` : '';
+    html += `<div class="${cls}" onclick="selectDay('${ds}')">${badge}${d}${dots}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+  renderDayDetail();
+}
+
+function selectDay(ds) {
+  selectedDay = selectedDay === ds ? null : ds;
+  renderCalendar();
+}
+
+function renderDayDetail() {
+  const el = document.getElementById('dayDetail');
+  if (!selectedDay) { el.style.display = 'none'; return; }
+  const log = getDayLog(selectedDay);
+  const completed = Object.entries(log).filter(([,e]) => e.done);
+  const mins = getTotalMins(selectedDay);
+
+  if (completed.length === 0) {
+    el.style.display = 'block';
+    el.innerHTML = `<div class="day-detail"><div class="day-detail-title">📅 ${fmtDateLabel(selectedDay)}</div><div class="day-detail-stat">No activities logged for this day.</div></div>`;
+    return;
+  }
+
+  const rows = completed.map(([id, entry]) => {
+    const act = activities.find(a => a.id === id);
+    const icon = act ? act.icon : '📌';
+    const name = act ? act.name : 'Unknown Activity';
+    return `<div class="day-activity-row"><span class="day-act-icon">${icon}</span><span class="day-act-name">${escHtml(name)}</span><span class="day-act-time">${fmtMins(entry.duration)}</span></div>`;
+  }).join('');
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="day-detail">
+      <div class="day-detail-title">📅 ${fmtDateLabel(selectedDay)}</div>
+      <div class="day-detail-stat">${completed.length} activit${completed.length===1?'y':'ies'} completed · ${fmtMins(mins)} total</div>
+      ${rows}
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+//  ACTIVITIES TAB
+// ═══════════════════════════════════════
+
+function renderActivities() {
+  const myList = document.getElementById('myActivitiesList');
+  if (activities.length === 0) {
+    myList.innerHTML = `<div class="empty" style="padding:24px"><div class="empty-ico">⚙️</div><div class="empty-title">No activities tracked</div><div class="empty-sub">Add a custom activity or pick from suggestions below.</div></div>`;
+  } else {
+    myList.innerHTML = activities.map(act => `
+      <div class="my-act-item">
+        <span class="my-act-icon">${act.icon}</span>
+        <div class="my-act-info">
+          <div class="my-act-name">${escHtml(act.name)}</div>
+          <div class="my-act-meta"><span class="cat-badge" style="${catStyle(act.category)}">${act.category}</span> · Default: ${act.duration} min</div>
+        </div>
+        <div class="my-act-actions">
+          <button class="btn btn-ghost btn-icon" onclick="openEditModal('${act.id}')" title="Edit">✏️</button>
+          <button class="btn btn-danger-ghost btn-icon" onclick="deleteActivity('${act.id}')" title="Remove">🗑️</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const addedIds = new Set(activities.map(a => a.id));
+  const addedNames = new Set(activities.map(a => a.name.toLowerCase()));
+  document.getElementById('sugGrid').innerHTML = SUGGESTIONS.map(s => {
+    const added = addedIds.has(s.id) || addedNames.has(s.name.toLowerCase());
+    const c = CAT_COLORS[s.category] || CAT_COLORS['Other'];
+    return `
+      <div class="sug-card ${added ? 'sug-added' : ''}" onclick="${added ? '' : `addSuggestion('${s.id}')`}" style="${added ? '' : 'cursor:pointer'}">
+        <span class="sug-icon">${s.icon}</span>
+        <div class="sug-info">
+          <div class="sug-name">${s.name}</div>
+          <div class="sug-detail" style="color:${c.text}">${s.category} · ${s.duration} min</div>
+        </div>
+        ${added ? `<span style="color:#10B981;font-size:18px">✓</span>` : `<span style="color:var(--primary);font-size:20px;font-weight:700">+</span>`}
+      </div>`;
+  }).join('');
+}
+
+function addSuggestion(id) {
+  const s = SUGGESTIONS.find(s => s.id === id);
+  if (!s) return;
+  activities.push({ id: s.id, name: s.name, icon: s.icon, duration: s.duration, category: s.category });
+  saveActs();
+  renderActivities();
+  // Flash feedback
+  const btn = event.currentTarget;
+  if (btn) { btn.style.opacity = '0.5'; setTimeout(() => renderActivities(), 300); }
+}
+
+function deleteActivity(id) {
+  if (!confirm('Remove this activity from your tracker? Your past logs will still be saved.')) return;
+  activities = activities.filter(a => a.id !== id);
+  saveActs();
+  renderActivities();
+  renderToday();
+}
+
+// ═══════════════════════════════════════
+//  ADD / EDIT MODAL
+// ═══════════════════════════════════════
+
+function openAddModal() {
+  editingActId = null;
+  document.getElementById('modalTitle').textContent = 'Add Custom Activity';
+  document.getElementById('actName').value = '';
+  document.getElementById('actDuration').value = '30';
+  document.getElementById('actCategory').value = 'Health';
+  selectedEmoji = '💪';
+  renderEmojiGrid();
+  document.getElementById('editActId').value = '';
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('actName').focus(), 100);
+}
+
+function openEditModal(id) {
+  const act = activities.find(a => a.id === id);
+  if (!act) return;
+  editingActId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Activity';
+  document.getElementById('actName').value = act.name;
+  document.getElementById('actDuration').value = act.duration;
+  document.getElementById('actCategory').value = act.category;
+  selectedEmoji = act.icon;
+  renderEmojiGrid();
+  document.getElementById('editActId').value = id;
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('actName').focus(), 100);
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('addModal')) closeAddModal();
+}
+
+function saveActivity() {
+  const name = document.getElementById('actName').value.trim();
+  if (!name) { document.getElementById('actName').focus(); return; }
+  const duration = parseInt(document.getElementById('actDuration').value) || 30;
+  const category = document.getElementById('actCategory').value;
+  const id = editingActId || genId();
+
+  if (editingActId) {
+    const idx = activities.findIndex(a => a.id === editingActId);
+    if (idx !== -1) activities[idx] = { id, name, icon: selectedEmoji, duration, category };
+  } else {
+    activities.push({ id, name, icon: selectedEmoji, duration, category });
+  }
+  saveActs();
+  closeAddModal();
+  renderActivities();
+  renderToday();
+}
+
+function renderEmojiGrid() {
+  document.getElementById('emojiGrid').innerHTML = EMOJIS.map(e =>
+    `<button type="button" class="emoji-opt ${e===selectedEmoji?'sel':''}" onclick="pickEmoji('${e}')">${e}</button>`
+  ).join('');
+}
+
+function pickEmoji(e) {
+  selectedEmoji = e;
+  renderEmojiGrid();
+}
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+
+function init() {
+  load();
+
+  // Set header date
+  const now = new Date();
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  initQuote();
+  renderToday();
+  renderEmojiGrid();
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAddModal();
+  });
+}
+
+init();
+</script>
+</body>
+</html>
