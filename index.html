@@ -661,6 +661,18 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
 .verse-ref { font-size:12px;font-weight:700;font-style:normal;color:#F59E0B;margin-top:5px; }
 
+/* ─── Yesterday's Review ─── */
+.review-progress-row { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.review-score { font-size:36px; font-weight:800; line-height:1; min-width:70px; }
+.review-rows { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.review-row { display:flex; align-items:center; gap:10px; padding:9px 12px; background:#0A0A0A; border-radius:var(--radius-sm); }
+.review-check { font-size:15px; flex-shrink:0; width:22px; }
+.review-act-icon { font-size:18px; flex-shrink:0; }
+.review-act-name { flex:1; font-size:14px; font-weight:500; }
+.review-missed { color:var(--text-muted); }
+.review-act-time { font-size:12px; color:#10B981; font-weight:700; flex-shrink:0; }
+.review-message { font-size:14px; line-height:1.7; padding:12px 16px; background:#0A0A0A; border-left:3px solid; border-radius:0 var(--radius-sm) var(--radius-sm) 0; color:#D1D5DB; margin-top:4px; }
+
 /* ─── Login Streak ─── */
 .login-streak-pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -790,6 +802,7 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
   <!-- ── TODAY PANEL ── -->
   <section class="panel active" id="panel-today">
+    <div id="yesterdayReview"></div>
     <div id="streakBanner" style="display:none" class="streak-banner">
       <div class="streak-fire">🔥</div>
       <div class="streak-text">
@@ -1616,6 +1629,84 @@ function switchTab(tab) {
 // ═══════════════════════════════════════
 //  TODAY
 // ═══════════════════════════════════════
+
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderYesterdayReview() {
+  const el = document.getElementById('yesterdayReview');
+  if (!el) return;
+
+  const yesterday = getYesterday();
+  const log = getDayLog(yesterday);
+
+  // Build the combined activity list for yesterday's day of week
+  const [y, m, d] = yesterday.split('-').map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  const schedYest = getScheduledForDow(dow);
+  const actIds = new Set(activities.map(a => a.id));
+  const allActs = [...activities, ...schedYest.filter(s => !actIds.has(s.id))];
+
+  // Only show if there were activities to track that day
+  if (allActs.length === 0) { el.innerHTML = ''; return; }
+
+  const completed = allActs.filter(a => (log[a.id] || {}).done);
+  const missed    = allActs.filter(a => !(log[a.id] || {}).done);
+  const pct       = Math.round((completed.length / allActs.length) * 100);
+  const totalMins = getTotalMins(yesterday);
+
+  // Overall message + colour
+  let msg, colour;
+  if (pct === 100) {
+    msg    = "Perfect day — every activity completed. That's what full commitment looks like. Carry that energy into today.";
+    colour = '#10B981';
+  } else if (pct >= 75) {
+    msg    = `Strong day overall. ${missed.length} left unchecked${missed.length > 0 ? ` — don't let ${escHtml(missed[0].name)} slip again` : ''}. Push for the full set today.`;
+    colour = '#10B981';
+  } else if (pct >= 50) {
+    msg    = `You hit half your activities. ${missed.length > 0 ? `${escHtml(missed.map(a=>a.name).slice(0,2).join(' and '))} didn't happen — ` : ''}what got in the way? Address it today.`;
+    colour = '#F59E0B';
+  } else if (pct > 0) {
+    msg    = `Only ${completed.length} of ${allActs.length} completed yesterday. Be honest with yourself about why, then go make today different.`;
+    colour = '#EF4444';
+  } else {
+    msg    = "Nothing was logged yesterday. Today is a clean slate — start with even one activity and build from there.";
+    colour = '#EF4444';
+  }
+
+  const rows = allActs.map(act => {
+    const entry  = log[act.id] || {};
+    const isDone = !!entry.done;
+    const dur    = isDone ? fmtMins(entry.duration || act.duration) : null;
+    return `
+      <div class="review-row">
+        <span class="review-check">${isDone ? '✅' : '❌'}</span>
+        <span class="review-act-icon">${act.icon}</span>
+        <span class="review-act-name ${isDone ? '' : 'review-missed'}">${escHtml(act.name)}</span>
+        ${dur ? `<span class="review-act-time">${dur}</span>` : `<span style="font-size:11px;color:#4B5563;flex-shrink:0">not done</span>`}
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:16px;border-color:#1A1A1A">
+      <div class="card-header" style="margin-bottom:14px">
+        <div class="card-title">📊 Yesterday's Review</div>
+        <span style="font-size:12px;color:var(--text-muted)">${fmtDateLabel(yesterday)}</span>
+      </div>
+      <div class="review-progress-row">
+        <div class="review-score" style="color:${colour}">${pct}%</div>
+        <div style="flex:1">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:5px">${completed.length} of ${allActs.length} activities · ${fmtMins(totalMins)} logged</div>
+        </div>
+      </div>
+      <div class="review-rows">${rows}</div>
+      <div class="review-message" style="border-left-color:${colour}">${msg}</div>
+    </div>`;
+}
 
 function getTodayCombined() {
   const dow = new Date().getDay();
@@ -3026,6 +3117,7 @@ function init() {
   coachChatDate = todayStr();
   initQuote();
   renderLoginStreak();
+  renderYesterdayReview();
   renderToday();
   renderTodayActivitiesInTodo();
   renderEmojiGrid();
@@ -3048,6 +3140,7 @@ function init() {
     });
     initQuote();
     renderLoginStreak();
+    renderYesterdayReview();
 
     // Reset journal/reflection date pointers to new day
     journalDate = current;
