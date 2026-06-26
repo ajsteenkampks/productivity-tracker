@@ -661,6 +661,14 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
 .verse-ref { font-size:12px;font-weight:700;font-style:normal;color:#F59E0B;margin-top:5px; }
 
+/* ─── Login Streak ─── */
+.login-streak-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 999px; padding: 5px 16px;
+  font-size: 13px; font-weight: 700; color: white;
+}
+
 /* ─── Week Folders ─── */
 .week-folder { margin-bottom: 8px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
 .week-header {
@@ -757,6 +765,9 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 <header class="header">
   <div class="header-title">✨ Daily Tracker</div>
   <div class="header-date" id="headerDate"></div>
+  <div id="loginStreakBadge" style="display:none;margin-bottom:14px">
+    <span class="login-streak-pill">🗓️ <span id="loginStreakNum">1</span> day login streak</span>
+  </div>
   <div class="quote-card">
     <div class="quote-text" id="quoteText">Loading quote…</div>
     <div class="quote-author" id="quoteAuthor"></div>
@@ -2226,6 +2237,33 @@ function pickEmoji(e) {
 //  HELPERS
 // ═══════════════════════════════════════
 
+// ═══════════════════════════════════════
+//  LOGIN STREAK
+// ═══════════════════════════════════════
+
+function updateLoginStreak() {
+  const today = todayStr();
+  const saved = JSON.parse(localStorage.getItem('pdt_login_streak') || '{"streak":0,"lastVisit":""}');
+  if (saved.lastVisit === today) return saved.streak;
+
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const newStreak = saved.lastVisit === yesterday ? saved.streak + 1 : 1;
+
+  localStorage.setItem('pdt_login_streak', JSON.stringify({ streak: newStreak, lastVisit: today }));
+  return newStreak;
+}
+
+function renderLoginStreak() {
+  const streak = updateLoginStreak();
+  const badge = document.getElementById('loginStreakBadge');
+  const num = document.getElementById('loginStreakNum');
+  if (!badge || !num) return;
+  num.textContent = streak;
+  badge.style.display = 'block';
+}
+
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -2987,6 +3025,7 @@ function init() {
   reflectionDate = todayStr();
   coachChatDate = todayStr();
   initQuote();
+  renderLoginStreak();
   renderToday();
   renderTodayActivitiesInTodo();
   renderEmojiGrid();
@@ -3008,6 +3047,7 @@ function init() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     initQuote();
+    renderLoginStreak();
 
     // Reset journal/reflection date pointers to new day
     journalDate = current;
