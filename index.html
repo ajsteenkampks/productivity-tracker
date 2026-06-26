@@ -661,6 +661,21 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
 .verse-ref { font-size:12px;font-weight:700;font-style:normal;color:#F59E0B;margin-top:5px; }
 
+/* ─── Week Folders ─── */
+.week-folder { margin-bottom: 8px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.week-header {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  cursor: pointer; background: #0A0A0A; user-select: none;
+  transition: background 0.15s;
+}
+.week-header:hover { background: #141414; }
+.week-label { flex: 1; font-weight: 700; font-size: 14px; }
+.week-count { font-size: 12px; color: var(--text-muted); }
+.week-chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; }
+.week-content { padding: 8px; }
+.week-folder.collapsed .week-content { display: none; }
+.week-folder.collapsed .week-chevron { transform: rotate(-90deg); }
+
 /* ─── Coach Chat ─── */
 .chat-bubble.coach-ai { align-self: flex-start; }
 .chat-bubble.coach-ai .chat-bubble-label { color: #F59E0B; }
@@ -2561,6 +2576,29 @@ async function getAIReply() {
   if (sendBtn) sendBtn.disabled = false;
 }
 
+function getWeekStart(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const dow = date.getDay(); // 0=Sun
+  date.setDate(date.getDate() - (dow === 0 ? 6 : dow - 1)); // shift back to Monday
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function getWeekLabel(weekStart) {
+  const [y, m, d] = weekStart.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const s = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const e = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${s} – ${e}`;
+}
+
+function toggleWeekFolder(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('collapsed');
+}
+
 function renderPastChats() {
   const card = document.getElementById('pastChatsCard');
   const list = document.getElementById('pastChatsList');
@@ -2573,12 +2611,41 @@ function renderPastChats() {
   if (entries.length === 0) { card.style.display = 'none'; return; }
   card.style.display = 'block';
 
-  list.innerHTML = entries.map(([ds, v]) => `
-    <div class="past-chat-entry" onclick="openPastReflection('${ds}')">
-      <div class="past-chat-date">${fmtDateLabel(ds)}</div>
-      ${v.quoteText ? `<div class="past-chat-quote">"${escHtml(v.quoteText.slice(0,80))}${v.quoteText.length > 80 ? '...' : ''}"</div>` : ''}
-      <div class="past-chat-meta">${v.messages.length} message${v.messages.length !== 1 ? 's' : ''} · Click to open</div>
-    </div>`).join('');
+  // Group by week
+  const weeks = {};
+  for (const [ds, v] of entries) {
+    const ws = getWeekStart(ds);
+    if (!weeks[ws]) weeks[ws] = [];
+    weeks[ws].push([ds, v]);
+  }
+
+  const thisWeek = getWeekStart(todayStr());
+  const sortedWeeks = Object.keys(weeks).sort((a, b) => b.localeCompare(a));
+
+  list.innerHTML = sortedWeeks.map(ws => {
+    const isCurrent = ws === thisWeek;
+    const label = isCurrent ? 'This Week' : getWeekLabel(ws);
+    const chats = weeks[ws];
+    const folderId = `wfolder-${ws}`;
+
+    const items = chats.map(([ds, v]) => `
+      <div class="past-chat-entry" onclick="openPastReflection('${ds}')">
+        <div class="past-chat-date">${fmtDateLabel(ds)}</div>
+        ${v.quoteText ? `<div class="past-chat-quote">"${escHtml(v.quoteText.slice(0, 80))}${v.quoteText.length > 80 ? '...' : ''}"</div>` : ''}
+        <div class="past-chat-meta">${v.messages.length} message${v.messages.length !== 1 ? 's' : ''} · Click to open</div>
+      </div>`).join('');
+
+    return `
+      <div class="week-folder ${isCurrent ? '' : 'collapsed'}" id="${folderId}">
+        <div class="week-header" onclick="toggleWeekFolder('${folderId}')">
+          <span>${isCurrent ? '📂' : '📁'}</span>
+          <span class="week-label">${label}</span>
+          <span class="week-count">${chats.length} chat${chats.length !== 1 ? 's' : ''}</span>
+          <span class="week-chevron">▼</span>
+        </div>
+        <div class="week-content">${items}</div>
+      </div>`;
+  }).join('');
 }
 
 // ── Past Entries ──
