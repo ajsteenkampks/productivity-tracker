@@ -661,6 +661,17 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
 
 .verse-ref { font-size:12px;font-weight:700;font-style:normal;color:#F59E0B;margin-top:5px; }
 
+/* ─── Activity Prompts ─── */
+.prompt-item {
+  display: flex; gap: 10px; padding: 10px 14px;
+  background: #0A0A0A; border-radius: var(--radius-sm);
+  margin-bottom: 8px; font-size: 14px; line-height: 1.6;
+  border-left: 3px solid #4B5563;
+}
+.prompt-num { font-weight: 800; color: #FFFFFF; flex-shrink: 0; min-width: 18px; }
+.act-guide-btn { opacity: 0; transition: opacity 0.15s; }
+.activity-item:hover .act-guide-btn { opacity: 1; }
+
 /* ─── Yesterday's Review ─── */
 .review-progress-row { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
 .review-score { font-size:36px; font-weight:800; line-height:1; min-width:70px; }
@@ -1071,6 +1082,25 @@ main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
   </div>
 </div>
 
+<!-- ══════════ ACTIVITY PROMPTS MODAL ══════════ -->
+<div class="modal-overlay" id="promptsModal" onclick="closePromptsModalOverlay(event)">
+  <div class="modal-box" style="max-width:520px">
+    <button class="modal-close" onclick="closePromptsModal()">✕</button>
+    <div class="modal-title" id="promptsTitle"></div>
+    <p id="promptsDesc" style="font-size:14px;color:var(--text-muted);margin-bottom:18px;line-height:1.6"></p>
+    <div id="promptsList" style="margin-bottom:18px"></div>
+    <div class="form-group">
+      <label class="form-label">Your Responses</label>
+      <textarea class="journal-textarea" id="promptsResponse" placeholder="Write your thoughts here…" style="min-height:130px" oninput="onPromptResponseInput()"></textarea>
+    </div>
+    <div class="modal-footer">
+      <span id="promptsSaveIndicator" class="save-indicator" style="margin-right:auto">Saved ✓</span>
+      <button class="btn btn-ghost" onclick="closePromptsModal()">Close</button>
+      <button class="btn btn-primary" onclick="savePromptResponse()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ SCHEDULE MODAL ══════════ -->
 <div class="modal-overlay" id="schedModal" onclick="closeSchedModalOnOverlay(event)">
   <div class="modal-box">
@@ -1438,6 +1468,82 @@ function getVerseOfDay() {
   return VERSES[(doy + 53) % VERSES.length];
 }
 
+const ACTIVITY_PROMPTS = {
+  'sug-gratitude': {
+    description: 'Take a few quiet minutes to reflect on what you appreciate. Gratitude rewires how you see the world.',
+    prompts: [
+      'Name 3 specific things you are grateful for right now — be detailed, not generic.',
+      'Who has positively impacted your life recently? What exactly did they do?',
+      'What is something small you usually overlook that you actually appreciate?',
+      'What challenge in your life are you grateful for? What has it taught you?',
+      'What about your body, health, or abilities are you thankful for today?'
+    ]
+  },
+  'sug-meditate': {
+    description: 'A moment of intentional stillness. No distractions — just you and your breath.',
+    prompts: [
+      'What intention do you set for this session?',
+      'What thoughts or worries would you like to release right now?',
+      'Describe how you feel in this moment — body, mind, and spirit.',
+      'What is one thing you want to carry from this session into the rest of your day?'
+    ]
+  },
+  'sug-journal': {
+    description: 'Get your thoughts out of your head and onto the page. Clarity lives in writing.',
+    prompts: [
+      "What's on your mind right now that you need to get out?",
+      'What is one thing you want to accomplish today, and why does it matter to you?',
+      'How are you feeling emotionally right now? Be completely honest.',
+      "What would make today a success in your own eyes?",
+      "What's something you want to remember about today?"
+    ]
+  },
+  'sug-prayer': {
+    description: 'Bring your whole self before God — your gratitude, your needs, and your worries.',
+    prompts: [
+      'What are you bringing to God in prayer today?',
+      'What scripture or verse is speaking to you right now, and why?',
+      'What are you trusting God with that feels uncertain or beyond your control?',
+      'How have you seen God at work in your life recently?',
+      'Is there someone you want to lift up in prayer today? Who and why?'
+    ]
+  },
+  'sug-shower': {
+    description: 'Choosing discomfort on purpose. The cold is the point — embrace it.',
+    prompts: [
+      'What discomfort are you choosing to face today, and why?',
+      'What is one area of your life that needs more discipline right now?',
+      'After stepping out — how do you feel? What shifted in your mind?'
+    ]
+  },
+  'sug-yoga': {
+    description: 'Connect with your body. Listen to what it is telling you today.',
+    prompts: [
+      'Where do you feel tension or tightness in your body right now?',
+      'Take 3 slow, deep breaths before starting. What do you notice?',
+      'What does your body need most today — strength, flexibility, or rest?',
+      'How will you carry the stillness from this practice into the rest of your day?'
+    ]
+  },
+  'sug-detox': {
+    description: 'Step away from the screen. Your attention is your most valuable resource.',
+    prompts: [
+      'What draws you to your phone most compulsively? What are you really looking for?',
+      'What have you been avoiding or escaping by staying on screens?',
+      'What would you do with this time if devices simply did not exist?',
+      'How do you feel after stepping away? What do you notice?'
+    ]
+  },
+  'sug-walk': {
+    description: 'Move your body and clear your mind. Some of the best thinking happens on a walk.',
+    prompts: [
+      'What is one thing you want to think through or process on this walk?',
+      'What do you notice around you that you usually rush past?',
+      'How does your body feel as you move? What does it need?'
+    ]
+  }
+};
+
 const SUGGESTIONS = [
   { id: 'sug-workout', name: 'Morning Workout', icon: '💪', duration: 45, category: 'Health' },
   { id: 'sug-run', name: 'Evening Run', icon: '🏃', duration: 30, category: 'Health' },
@@ -1514,6 +1620,7 @@ function load() {
     quoteReflections  = JSON.parse(localStorage.getItem('pdt_reflect')  || '{}');
     quoteChats        = JSON.parse(localStorage.getItem('pdt_chats')    || '{}');
     coachChats        = JSON.parse(localStorage.getItem('pdt_coach')    || '{}');
+    activityResponses = JSON.parse(localStorage.getItem('pdt_prompts') || '{}');
   } catch(e) { activities = []; dailyLogs = {}; todos = []; scheduledActs = []; journalEntries = {}; quoteReflections = {}; quoteChats = {}; coachChats = {}; }
   const now = new Date();
   calYear = now.getFullYear();
@@ -1770,6 +1877,7 @@ function renderToday() {
           onchange="updateDuration('${act.id}', this.value)">
         <span class="dur-unit">min</span>
       </div>
+      ${ACTIVITY_PROMPTS[act.id] ? `<button class="btn btn-ghost btn-icon act-guide-btn" onclick="openPromptsModal('${act.id}')" title="Guided prompts">📖</button>` : ''}
       ${!isScheduled ? `<button class="btn btn-ghost btn-icon act-edit-btn" onclick="openEditModal('${act.id}')" title="Edit activity">✏️</button>` : ''}
     </div>`;
   }).join('');
@@ -2330,6 +2438,69 @@ function pickEmoji(e) {
 
 // ═══════════════════════════════════════
 //  LOGIN STREAK
+
+// ═══════════════════════════════════════
+//  ACTIVITY PROMPTS
+// ═══════════════════════════════════════
+
+let activityResponses = {}; // { 'YYYY-MM-DD': { [actId]: 'response text' } }
+let currentPromptActId = null;
+let promptResponseTimer = null;
+
+function saveActivityResponses() { localStorage.setItem('pdt_prompts', JSON.stringify(activityResponses)); }
+
+function openPromptsModal(actId) {
+  const act = findAct(actId) || activities.find(a => a.id === actId);
+  const prompts = ACTIVITY_PROMPTS[actId];
+  if (!prompts) return;
+
+  currentPromptActId = actId;
+  const today = todayStr();
+
+  document.getElementById('promptsTitle').textContent = `${act ? act.icon + ' ' : ''}${act ? act.name : 'Guided Practice'}`;
+  document.getElementById('promptsDesc').textContent = prompts.description;
+  document.getElementById('promptsList').innerHTML = prompts.prompts.map((p, i) => `
+    <div class="prompt-item">
+      <span class="prompt-num">${i + 1}.</span>
+      <span>${escHtml(p)}</span>
+    </div>`).join('');
+
+  const saved = (activityResponses[today] || {})[actId] || '';
+  document.getElementById('promptsResponse').value = saved;
+  document.getElementById('promptsSaveIndicator').classList.remove('show');
+  document.getElementById('promptsModal').classList.add('open');
+}
+
+function closePromptsModal() {
+  document.getElementById('promptsModal').classList.remove('open');
+  currentPromptActId = null;
+}
+
+function closePromptsModalOverlay(e) {
+  if (e.target === document.getElementById('promptsModal')) closePromptsModal();
+}
+
+function onPromptResponseInput() {
+  clearTimeout(promptResponseTimer);
+  promptResponseTimer = setTimeout(() => {
+    savePromptResponse();
+    flashSaved('promptsSaveIndicator');
+  }, 1000);
+}
+
+function savePromptResponse() {
+  if (!currentPromptActId) return;
+  const today = todayStr();
+  const text = document.getElementById('promptsResponse').value;
+  if (!activityResponses[today]) activityResponses[today] = {};
+  if (text.trim()) {
+    activityResponses[today][currentPromptActId] = text;
+  } else {
+    delete activityResponses[today][currentPromptActId];
+  }
+  saveActivityResponses();
+  flashSaved('promptsSaveIndicator');
+}
 // ═══════════════════════════════════════
 
 function updateLoginStreak() {
@@ -3124,7 +3295,7 @@ function init() {
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeAddModal(); closeSchedModal(); }
+    if (e.key === 'Escape') { closeAddModal(); closeSchedModal(); closePromptsModal(); }
   });
 
   // Day-change detector — checks every minute and refreshes if midnight has passed
